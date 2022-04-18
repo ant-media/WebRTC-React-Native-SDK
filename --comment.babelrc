@@ -1,0 +1,13 @@
+{
+  "presets": [
+    "module:metro-react-native-babel-preset",
+    [
+      "@babel/preset-env",
+      {
+        "targets": {
+          "esmodules": false
+        }
+      }
+    ]
+  ]
+}

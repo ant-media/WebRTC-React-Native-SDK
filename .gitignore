@@ -1,0 +1,13 @@
+# paths to gitignore
+
+/node_modules
+/**/__tests__
+/dist
+/storybook-static
+/.rts2*
+# /examples/
+
+# files to ignore
+
+yarn-error.log
+apis.txt
