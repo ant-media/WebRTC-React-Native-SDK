@@ -1,6 +1,6 @@
 {
-  "name": "@gogletahir/react-native-ant-media",
-  "version": "0.0.1-beta",
+  "name": "@antmedia/react-native-ant-media",
+  "version": "0.0.2-beta",
   "description": "Port of webrtc-adaptor (Ant Media) to react-native using react-native-webrtc",
   "source": "src/index.ts",
   "main": "dist/index.js",
@@ -67,7 +67,7 @@
     "prettier": "^2.2.1",
     "react": "^17.0.1",
     "react-native": "^0.63.4",
-    "react-native-webrtc": "*",
+    "react-native-webrtc": "^1.87.3",
     "sucrase": "^3.17.0",
     "ts-loader": "^8.0.14",
     "tsconfig-paths": "^3.9.0",
@@ -78,6 +78,6 @@
   "peerDependencies": {
     "react": "^17.0.1",
     "react-native": "^0.63.4",
-    "react-native-webrtc": "*"
+    "react-native-webrtc": "^1.87.3"
   }
 }
