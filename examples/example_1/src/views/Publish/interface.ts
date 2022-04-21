@@ -1,4 +1,4 @@
-import { MutableRefObject } from 'react';
+import {MutableRefObject} from 'react';
 import {
   MediaStream,
   RTCOfferOptions,
@@ -22,7 +22,7 @@ export interface Params {
   onlyDataChannel?: boolean;
 }
 
-export type CustomWebSocket = WebSocket & { sendJson: (dt: any) => void };
+export type CustomWebSocket = WebSocket & {sendJson: (dt: any) => void};
 
 export interface Socket {
   ws: null | CustomWebSocket;
@@ -41,7 +41,7 @@ export interface RemoteDescriptionSet {
 }
 
 export interface RemotePeerConnectionStats {
-  [key: string]: { timerId: number };
+  [key: string]: {timerId: number};
 }
 
 export interface IceCandidateList {

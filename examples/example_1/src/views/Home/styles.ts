@@ -22,8 +22,8 @@ export const Input = styled.TextInput`
 `;
 
 export const Label = styled.Text`
-padding: 20px ;
-text-align: center;
+  padding: 20px;
+  text-align: center;
 `;
 
 export const Text = styled.Text`
@@ -35,7 +35,7 @@ export const Text = styled.Text`
 
 export const Button = styled.TouchableOpacity`
   width: 100%;
-  margin:10px 0;
+  margin: 10px 0;
   padding: 12px;
   background-color: #3275cb;
   margin-top: 16px;

@@ -32,7 +32,7 @@ const Peer: React.FC = () => {
   }>({});
   const adaptor = useAntMedia({
     url: webSocketUrl,
-   
+
     mediaConstraints: {
       video: {
         mandatory: {

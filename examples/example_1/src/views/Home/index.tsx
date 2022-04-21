@@ -4,27 +4,15 @@ import {useAntMedia} from '@antmedia/react-native-ant-media';
 
 import InCallManager from 'react-native-incall-manager';
 
-import {
-  Container,
-  Input,
-  Label,
-  Text,
-  Button,
-} from './styles';
+import {Container, Input, Label, Text, Button} from './styles';
 
-import { Link } from "react-router-native";
-import { View } from 'react-native';
+import {Link} from 'react-router-native';
+import {View} from 'react-native';
 
 const Home: React.FC = () => {
-  
-  
   return (
-    
-    
     <View>
-
       <Container>
-
         <Label children="Ant Media React Native Example" />
 
         <Button>
@@ -47,12 +35,8 @@ const Home: React.FC = () => {
             <Text>Conference</Text>
           </Link>
         </Button>
-
       </Container>
-
     </View>
-    
-
   );
 };
 

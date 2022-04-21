@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {
   RTCPeerConnection,
   mediaDevices,
@@ -32,7 +32,7 @@ function useAntMedia(params) {
   const remotePeerConnectionStats = useRef({}).current;
   const remoteDescriptionSet = useRef({}).current;
   const iceCandidateList = useRef({}).current;
-  const bandwidth = useRef({ value: bwh || 900 }).current;
+  const bandwidth = useRef({value: bwh || 900}).current;
 
   const adaptorRef = useRef(null);
 
@@ -50,7 +50,7 @@ function useAntMedia(params) {
         delete remotePeerConnection[streamId];
         const playStreamIndex = playStreamIds.indexOf(streamId);
         setRemoteStreams((sm) => {
-          const obj = { ...sm };
+          const obj = {...sm};
           delete obj[streamId];
           return obj;
         });
@@ -76,7 +76,7 @@ function useAntMedia(params) {
       const rmS = remotePeerConnection[streamId].getRemoteStreams();
 
       setRemoteStreams((rm) => {
-        const obj = { ...rm };
+        const obj = {...rm};
         obj[streamId] = rmS;
         return obj;
       });
@@ -419,7 +419,7 @@ function useAntMedia(params) {
       try {
         console.debug(`addIceCandidate ${streamId}`);
         await remotePeerConnection[streamId].addIceCandidate(candidate);
-      } catch (err) { }
+      } catch (err) {}
     },
     [remotePeerConnection],
   );
@@ -443,7 +443,7 @@ function useAntMedia(params) {
         );
 
         remoteDescriptionSet[streamId] = true;
-        const { length } = Object.keys(iceCandidateList[streamId]);
+        const {length} = Object.keys(iceCandidateList[streamId]);
 
         for (let i = 0; i < length; i++) {
           await addIceCandidate(streamId, iceCandidateList[streamId][i]);
@@ -456,7 +456,7 @@ function useAntMedia(params) {
           );
           await gotDescription(configur, streamId);
         }
-      } catch (error) { }
+      } catch (error) {}
     },
     [
       addIceCandidate,
@@ -651,27 +651,27 @@ function useAntMedia(params) {
   return !connected
     ? null
     : {
-      publish,
-      joinRoom,
-      leaveFromRoom,
-      join,
-      leave,
-      play,
-      stop,
-      localStream,
-      remoteStreams,
-      getUserMedia,
-      getStreamInfo,
-      signallingState,
-      initPeerConnection,
-      handleTurnVolume,
-      handleTurnCamera,
-      isTurnedOf,
-      isMuted,
-      getRoomInfo,
-      switchCamera,
-      // closePeerConnection
-    };
+        publish,
+        joinRoom,
+        leaveFromRoom,
+        join,
+        leave,
+        play,
+        stop,
+        localStream,
+        remoteStreams,
+        getUserMedia,
+        getStreamInfo,
+        signallingState,
+        initPeerConnection,
+        handleTurnVolume,
+        handleTurnCamera,
+        isTurnedOf,
+        isMuted,
+        getRoomInfo,
+        switchCamera,
+        // closePeerConnection
+      };
 }
 
 export default useAntMedia;

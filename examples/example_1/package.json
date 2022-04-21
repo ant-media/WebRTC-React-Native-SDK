@@ -8,7 +8,9 @@
     "start": "react-native start",
     "test": "jest",
     "gradlew": "sucrase-node ./scripts/gradlew.ts",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx"
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "prettier:check": "prettier --check .",
+    "prettier:fix": "prettier --write ."
   },
   "dependencies": {
     "@antmedia/react-native-ant-media": "*",
@@ -18,7 +20,8 @@
     "react-native-incall-manager": "^3.3.0",
     "react-native-webrtc": "^1.87.3",
     "react-router-native": "^5.2.0",
-    "styled-components": "^5.3.5"
+    "styled-components": "^5.3.5",
+    "prettier": "^2.2.1"
   },
   "devDependencies": {
     "@babel/core": "^7.8.4",
@@ -35,6 +38,8 @@
     "babel-jest": "^25.1.0",
     "eslint": "^6.5.1",
     "jest": "^25.1.0",
+    "eslint-config-prettier": "^7.2.0",
+    "eslint-plugin-prettier": "^3.3.1",
     "metro-react-native-babel-preset": "^0.59.0",
     "react-test-renderer": "16.13.1",
     "sucrase": "^3.17.1",

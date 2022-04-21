@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState, useEffect } from 'react';
+import React, {useCallback, useRef, useState, useEffect} from 'react';
 import {useAntMedia} from '@antmedia/react-native-ant-media';
 import InCallManager from 'react-native-incall-manager';
 import {
@@ -19,12 +19,12 @@ const Publish: React.FC = () => {
   const [localMedia, setLocalMedia] = useState('');
   const streamNameRef = useRef<string>(defaultStreamName);
   const [isPlaying, setIsPlaying] = useState(false);
-    
+
   const adaptor = useAntMedia({
     url: webSocketUrl,
-      
+
     mediaConstraints: {
-     video: {
+      video: {
         mandatory: {
           minFrameRate: 30,
           minHeight: 480,
@@ -32,7 +32,7 @@ const Publish: React.FC = () => {
         },
         optional: [],
         facingMode: 'user',
-      },      
+      },
       audio: true,
     },
     sdp_constraints: {
@@ -47,11 +47,11 @@ const Publish: React.FC = () => {
         },
       ],
     },
-    
+
     callback(command, data) {
       switch (command) {
         case 'pong':
-           break;
+          break;
         case 'publish_started':
           console.log('publish_started');
           setIsPlaying(true);
@@ -65,7 +65,6 @@ const Publish: React.FC = () => {
           console.log(command);
           break;
       }
-
     },
     callbackError: (err, data) => {
       console.error('callbackError', err, data);
@@ -107,7 +106,7 @@ const Publish: React.FC = () => {
 
   useEffect(() => {
     if (localMedia) {
-      InCallManager.start({ media: 'video' });
+      InCallManager.start({media: 'video'});
     }
   }, [localMedia]);
 
@@ -115,27 +114,27 @@ const Publish: React.FC = () => {
     <Container>
       {!isPlaying ? (
         <>
-         <InputView>
+          <InputView>
             <Label children="Stream Name" />
             <Input
               defaultValue={defaultStreamName}
               onChangeText={handleSetStreamName}
             />
           </InputView>
-         <Button
+          <Button
             onPress={handlePublish}
-            style={{alignSelf: 'center', marginHorizontal: 'auto'}}>
+            style={{alignSelf: 'center', marginHorizontal: 'auto'}}
+          >
             <Text>Start Publishing</Text>
-          </Button>         
-          </>
+          </Button>
+        </>
       ) : (
         <>
-          <LocalView zOrder={1} objectFit="cover" streamURL={localMedia} />          
+          <LocalView zOrder={1} objectFit="cover" streamURL={localMedia} />
           <Button style={{marginTop: 'auto'}} onPress={handleStop}>
             <Text>Stop</Text>
           </Button>
         </>
-
       )}
     </Container>
   );

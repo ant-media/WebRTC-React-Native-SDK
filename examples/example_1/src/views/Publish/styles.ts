@@ -55,15 +55,14 @@ export const LocalView = styled(RTCView)`
   height: 550px;
   position: absolute;
   bottom: 60px;
-  left:1px;
+  left: 1px;
   right: 1px;
   z-index: 1;
   background: #000;
   /* align-self: flex-end; */
   /* margin-top: auto; */
 `;
-export const ButtonView = styled.View`
-  `;
+export const ButtonView = styled.View``;
 /*},*/
 export const leaveBtn = styled.TouchableOpacity`
   backgroundColor: 'red',
@@ -72,7 +71,7 @@ export const leaveBtn = styled.TouchableOpacity`
   paddingHorizontal: 10,
   marginBottom: 10,
   `;
-  export const btnTxt = styled.Text`
+export const btnTxt = styled.Text`
   color: 'white',
   fontSize: 20,
 `;

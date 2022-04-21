@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, {useState, useEffect, useRef, useCallback} from 'react';
 import {
   View,
   Platform,
@@ -12,15 +12,13 @@ import {
 // NOTE: remove this dependency if you want don't want loud speaker ability
 //import RNSwitchAudioOutput from 'react-native-switch-audio-output';
 
-
 import StreamView from './StreamView';
 //import useAntMedia from './useAntMedia';
 import {useAntMedia} from '@antmedia/react-native-ant-media';
 import styles from './styles';
 import {WEB_SOCKET_URL, DEFAULT_STREAM} from '@env';
 
-const pc_config = { iceServers: [{ urls: 'stun:stun1.l.google.com:19302' }] };
-
+const pc_config = {iceServers: [{urls: 'stun:stun1.l.google.com:19302'}]};
 
 const webSocketUrl = WEB_SOCKET_URL;
 const defaultStreamName = DEFAULT_STREAM;
@@ -34,11 +32,11 @@ const App = () => {
   const [isSpeaker, setIsSpeaker] = useState(false);
   const [isFront, setIsFront] = useState(true);
   const [maximizedStream, setMaximizedStream] = useState(null);
-  const stream = useRef({ id: '' }).current;
+  const stream = useRef({id: ''}).current;
   let roomTimerId = useRef(null).current;
   let streamsList = useRef([]).current;
 
-  const { width, height } = Dimensions.get('screen');
+  const {width, height} = Dimensions.get('screen');
 
   const adaptor = useAntMedia({
     url: webSocketUrl,
@@ -153,7 +151,7 @@ const App = () => {
     }
   }, [adaptor, isFront]);
 
-   useEffect(() => {
+  useEffect(() => {
     if (adaptor) {
       const verify = () => {
         if (
@@ -175,7 +173,7 @@ const App = () => {
         if (i !== stream.id) {
           let st =
             adaptor.remoteStreams[i][0] &&
-              'toURL' in adaptor.remoteStreams[i][0]
+            'toURL' in adaptor.remoteStreams[i][0]
               ? adaptor.remoteStreams[i][0].toURL()
               : null;
           if (st) remoteStreams.push(st);
@@ -185,7 +183,7 @@ const App = () => {
     return remoteStreams;
   };
 
-  const renderStream = ({ item: _stream }) => {
+  const renderStream = ({item: _stream}) => {
     const count = allStreams.length;
     let wScale = 1;
     let hScale = 1;
@@ -193,12 +191,13 @@ const App = () => {
     else if (count > 6) wScale = 3;
 
     if (count % 3 === 0 || count >= 5) hScale = 3;
-   
+
     return (
       <TouchableOpacity
         onPress={() => setMaximizedStream(_stream)}
         activeOpacity={0.9}
-        style={{ width: width / wScale, height: height / hScale }}>
+        style={{width: width / wScale, height: height / hScale}}
+      >
         {!maximizedStream && <StreamView stream={_stream} />}
       </TouchableOpacity>
     );
@@ -211,7 +210,8 @@ const App = () => {
         <StreamView stream={maximizedStream} />
         <TouchableOpacity
           onPress={() => setMaximizedStream(null)}
-          style={styles.closeBtn}>
+          style={styles.closeBtn}
+        >
           <Text style={styles.btnTxt}>Close</Text>
         </TouchableOpacity>
       </View>
@@ -227,8 +227,8 @@ const App = () => {
     allStreams.length <= 3
       ? 1
       : allStreams.length > 3 && allStreams.length <= 6
-        ? 2
-        : 3;
+      ? 2
+      : 3;
 
   return (
     <View style={styles.container}>
@@ -252,34 +252,35 @@ const App = () => {
             disabled={!localStream}
             style={[
               styles.joinBtn,
-              !localStream ? { backgroundColor: 'red' } : {},
+              !localStream ? {backgroundColor: 'red'} : {},
             ]}
-            onPress={handleConnect}>
+            onPress={handleConnect}
+          >
             <Text style={styles.btnTxt}>Join room</Text>
           </TouchableOpacity>
         </View>
       ) : (
-          <View style={styles.bottomAction}>
-            <TouchableOpacity style={styles.leaveBtn} onPress={handleMute}>
-              <Text style={styles.btnTxt}>{isMute ? 'Unmute' : 'Mute'}</Text>
-            </TouchableOpacity>
-            <View style={{ width: 10 }} />
-            <TouchableOpacity style={styles.leaveBtn} onPress={handleVideo}>
-              <Text style={styles.btnTxt}>
-                {isMuteVideo ? 'On' : 'Off'} Video
-                            </Text>
-            </TouchableOpacity>
-            <View style={{ width: 10 }} />
-            <TouchableOpacity style={styles.leaveBtn} onPress={handleDisconnect}>
-              <Text style={styles.btnTxt}>Leave room</Text>
-            </TouchableOpacity>
-            <View style={{ width: 10 }} />
-            <TouchableOpacity style={styles.leaveBtn} onPress={switchCamera}>
-              <Text style={styles.btnTxt}>Switch Camera</Text>
-            </TouchableOpacity>
-            <View style={{ width: 10 }} />
-             </View>
-        )}
+        <View style={styles.bottomAction}>
+          <TouchableOpacity style={styles.leaveBtn} onPress={handleMute}>
+            <Text style={styles.btnTxt}>{isMute ? 'Unmute' : 'Mute'}</Text>
+          </TouchableOpacity>
+          <View style={{width: 10}} />
+          <TouchableOpacity style={styles.leaveBtn} onPress={handleVideo}>
+            <Text style={styles.btnTxt}>
+              {isMuteVideo ? 'On' : 'Off'} Video
+            </Text>
+          </TouchableOpacity>
+          <View style={{width: 10}} />
+          <TouchableOpacity style={styles.leaveBtn} onPress={handleDisconnect}>
+            <Text style={styles.btnTxt}>Leave room</Text>
+          </TouchableOpacity>
+          <View style={{width: 10}} />
+          <TouchableOpacity style={styles.leaveBtn} onPress={switchCamera}>
+            <Text style={styles.btnTxt}>Switch Camera</Text>
+          </TouchableOpacity>
+          <View style={{width: 10}} />
+        </View>
+      )}
       {renderMaximizedStream(4)}
     </View>
   );
