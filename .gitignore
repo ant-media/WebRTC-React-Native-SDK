@@ -12,3 +12,4 @@
 yarn-error.log
 apis.txt
 examples/example_1/.env
+/.vscode

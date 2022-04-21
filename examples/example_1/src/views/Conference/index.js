@@ -13,8 +13,7 @@ import {
 //import RNSwitchAudioOutput from 'react-native-switch-audio-output';
 
 import StreamView from './StreamView';
-//import useAntMedia from './useAntMedia';
-import {useAntMedia} from '@antmedia/react-native-ant-media';
+import useAntMedia from './useAntMedia';
 import styles from './styles';
 import {WEB_SOCKET_URL, DEFAULT_STREAM} from '@env';
 
