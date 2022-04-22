@@ -187,9 +187,10 @@ const App = () => {
     let wScale = 1;
     let hScale = 1;
     if (count > 3 && count < 6) wScale = 2;
-    else if (count > 6) wScale = 3;
+    else if (count > 6) wScale = 2;
 
-    if (count % 3 === 0 || count >= 5) hScale = 3;
+    if (count % 3 === 0 || count >= 5) hScale = 2;
+   // else if (count < 5 && count !== 1) hScale = 2;
 
     return (
       <TouchableOpacity
