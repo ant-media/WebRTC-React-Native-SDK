@@ -152,7 +152,7 @@ const Peer: React.FC = () => {
             />
           </InputView>
           <Button onPress={handleJoin}>
-            <Text>Play</Text>
+            <Text>Join</Text>
           </Button>
         </>
       ) : (
