@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState, useEffect } from 'react';
+import React, {useCallback, useRef, useState, useEffect} from 'react';
 
 import {
   StyleSheet,
@@ -7,18 +7,19 @@ import {
   TouchableOpacity,
   Text,
 } from 'react-native';
-import { useAntMedia, rtc_view } from '@antmedia/react-native-ant-media';
+import {useAntMedia, rtc_view} from '@antmedia/react-native-ant-media';
 
 import InCallManager from 'react-native-incall-manager';
 
 export default function App() {
-  var defaultStreamName = 'testv1';
+  var defaultStreamName = 'streamTest1';
+  const webSocketUrl = 'ws://server.com:5080/WebRTCAppEE/websocket';
+  //or webSocketUrl: 'wss://server.com:5443/WebRTCAppEE/websocket',
 
   const streamNameRef = useRef<string>(defaultStreamName);
   const [localMedia, setLocalMedia] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const webSocketUrl = 'ws://141.95.165.123:5080/WebRTCAppEE/websocket';
 
   let localStream: any = useRef(null);
 
@@ -77,7 +78,7 @@ export default function App() {
 
         console.log(
           'localStream.current.toURL()',
-          adaptor.localStream.current.toURL()
+          adaptor.localStream.current.toURL(),
         );
 
         return setLocalMedia(adaptor.localStream.current.toURL());
@@ -89,7 +90,7 @@ export default function App() {
 
   useEffect(() => {
     if (localMedia) {
-      InCallManager.start({ media: 'video' });
+      InCallManager.start({media: 'video'});
     }
   }, [localMedia]);
 
@@ -139,12 +140,10 @@ const styles = StyleSheet.create({
   },
   box: {
     alignSelf: 'center',
-    //marginVertical: 0,
     width: '80%',
     height: '80%',
   },
   streamPlayer: {
-    //zIndex: 1,
     width: '100%',
     height: '80%',
     alignSelf: 'center',

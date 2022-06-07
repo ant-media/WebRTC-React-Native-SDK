@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState, useEffect } from 'react';
+import React, {useCallback, useRef, useState, useEffect} from 'react';
 
 import {
   StyleSheet,
@@ -7,11 +7,12 @@ import {
   TouchableOpacity,
   Text,
 } from 'react-native';
-import { useAntMedia, rtc_view } from '@antmedia/react-native-ant-media';
+import {useAntMedia, rtc_view} from '@antmedia/react-native-ant-media';
 
 export default function App() {
-  var defaultStreamName = 'testv1';
-  const webSocketUrl = 'ws://141.95.165.123:5080/WebRTCAppEE/websocket';
+  var defaultStreamName = 'streamTest1';
+  const webSocketUrl = 'ws://server.com:5080/WebRTCAppEE/websocket';
+  //or webSocketUrl: 'wss://server.com:5443/WebRTCAppEE/websocket',
 
   const streamNameRef = useRef<string>(defaultStreamName);
   const [remoteMedia, setRemoteStream] = useState<string>('');
@@ -19,6 +20,15 @@ export default function App() {
 
   const adaptor = useAntMedia({
     url: webSocketUrl,
+    mediaConstraints: {
+      audio: true,
+      video: {
+        width: 640,
+        height: 480,
+        frameRate: 30,
+        facingMode: 'front',
+      },
+    },
     callback(command: any) {
       switch (command) {
         case 'pong':
@@ -41,6 +51,14 @@ export default function App() {
     callbackError: (err: any, data: any) => {
       console.error('callbackError', err, data);
     },
+    peer_connection_config: {
+      iceServers: [
+        {
+          url: 'stun:stun.l.google.com:19302',
+        },
+      ],
+    },
+    debug: true,
   });
 
   useEffect(() => {
@@ -56,7 +74,7 @@ export default function App() {
     }
   }, [adaptor]);
 
-  const handlePublish = useCallback(() => {
+  const handlePlay = useCallback(() => {
     if (!adaptor) {
       return;
     }
@@ -77,10 +95,7 @@ export default function App() {
         <Text style={styles.heading}>Ant Media WebRTC Play</Text>
         {!isPlaying ? (
           <>
-            <TouchableOpacity
-              onPress={handlePublish}
-              style={styles.startButton}
-            >
+            <TouchableOpacity onPress={handlePlay} style={styles.startButton}>
               <Text>Start Playing</Text>
             </TouchableOpacity>
           </>
@@ -109,12 +124,10 @@ const styles = StyleSheet.create({
   },
   box: {
     alignSelf: 'center',
-    //marginVertical: 0,
     width: '80%',
     height: '80%',
   },
   streamPlayer: {
-    //zIndex: 1,
     width: '100%',
     height: '80%',
     alignSelf: 'center',
@@ -128,7 +141,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#DDDDDD',
     padding: 10,
-    //marginTop: 400,
     top: 400,
   },
   heading: {

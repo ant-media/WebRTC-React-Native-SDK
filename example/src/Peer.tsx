@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState, useEffect } from 'react';
+import React, {useCallback, useRef, useState, useEffect} from 'react';
 
 import {
   StyleSheet,
@@ -7,13 +7,14 @@ import {
   TouchableOpacity,
   Text,
 } from 'react-native';
-import { useAntMedia, rtc_view } from '@antmedia/react-native-ant-media';
+import {useAntMedia, rtc_view} from '@antmedia/react-native-ant-media';
 
 import InCallManager from 'react-native-incall-manager';
 
 export default function App() {
-  var defaultStreamName = 'testv1';
-  const webSocketUrl = 'ws://141.95.165.123:5080/WebRTCAppEE/websocket';
+  var defaultStreamName = 'streamTest1';
+  const webSocketUrl = 'ws://server.com:5080/WebRTCAppEE/websocket';
+  //or webSocketUrl: 'wss://server.com:5443/WebRTCAppEE/websocket',
 
   const [localMedia, setLocalMedia] = useState('');
   const streamNameRef = useRef<string>(defaultStreamName);
@@ -36,12 +37,12 @@ export default function App() {
         case 'pong':
           break;
         case 'joined':
-          console.log('play_started');
+          console.log('joined!');
           setIsPlaying(true);
           break;
         case 'leaved':
           console.log('leaved!');
-          setRemoteStream('');
+          // setRemoteStream('');
           setIsPlaying(false);
           break;
         default:
@@ -79,7 +80,7 @@ export default function App() {
 
   useEffect(() => {
     if (localMedia && remoteMedia) {
-      InCallManager.start({ media: 'video' });
+      InCallManager.start({media: 'video'});
     }
   }, [localMedia, remoteMedia]);
 
@@ -96,7 +97,7 @@ export default function App() {
     }
   }, [adaptor]);
 
-  const handlePublish = useCallback(() => {
+  const handleJoin = useCallback(() => {
     if (!adaptor) {
       return;
     }
@@ -104,7 +105,7 @@ export default function App() {
     adaptor.join(streamNameRef.current);
   }, [adaptor]);
 
-  const handleStop = useCallback(() => {
+  const handleLeave = useCallback(() => {
     if (!adaptor) {
       return;
     }
@@ -120,18 +121,18 @@ export default function App() {
         {localMedia ? <>{rtc_view(localMedia, styles.localPlayer)}</> : <></>}
         {!isPlaying ? (
           <>
-            <TouchableOpacity onPress={handlePublish} style={styles.button}>
+            <TouchableOpacity onPress={handleJoin} style={styles.button}>
               <Text>Join</Text>
             </TouchableOpacity>
           </>
         ) : (
           <>
-          {remoteMedia ? (
-          <>{rtc_view(remoteMedia, styles.streamPlayer)}</>
-        ) : (
-          <></>
-        )}
-            <TouchableOpacity onPress={handleStop} style={styles.button}>
+            {remoteMedia ? (
+              <>{rtc_view(remoteMedia, styles.streamPlayer)}</>
+            ) : (
+              <></>
+            )}
+            <TouchableOpacity onPress={handleLeave} style={styles.button}>
               <Text>Leave</Text>
             </TouchableOpacity>
           </>
@@ -146,27 +147,28 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 0,
   },
   box: {
     alignSelf: 'center',
-    //marginVertical: 0,
     width: '80%',
     height: '80%',
+    marginTop: 0,
   },
   streamPlayer: {
     zIndex: 1,
-    width: '50%',
-    height: '50%',
+    width: '100%',
+    height: '45%',
     alignSelf: 'center',
+    backgroundColor: '#C5C5C5',
+    marginBottom: 10,
   },
   localPlayer: {
-    width: '50%',
-    height: '50%',
+    width: '100%',
+    height: '45%',
     alignSelf: 'center',
-    //position: 'absolute',
-    //bottom: '15%',
-    //alignSelf: 'flex-end',
-    //zIndex: 2,
+    backgroundColor: '#C5C5C5',
+    marginBottom: 10,
   },
   button: {
     alignItems: 'center',
@@ -176,5 +178,6 @@ const styles = StyleSheet.create({
   },
   heading: {
     alignSelf: 'center',
+    marginBottom: 10,
   },
 });
