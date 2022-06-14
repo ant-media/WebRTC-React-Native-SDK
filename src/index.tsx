@@ -35,6 +35,10 @@ export interface Adaptor {
   stop: (streamId: string) => void;
   join: (streamId: string) => void;
   leave: (streamId: string) => void;
+  joinRoom: (room: string, streamId?: string) => void;
+  leaveFromRoom: (room: string) => void;
+  getRoomInfo: (room: string, streamId?: string) => void;
+  initPeerConnection: (streamId: string) => Promise<void>;
   localStream: MutableRefObject<MediaStream | null>;
   remoteStreams: RemoteStreams;
 }
@@ -62,6 +66,8 @@ export function useAntMedia(params: Params) {
     peer_connection_config,
     debug,
   } = params;
+
+  const [roomName, setRoomName] = useState('');
 
   const adaptorRef: any = useRef<null | Adaptor>(null);
 
@@ -141,10 +147,10 @@ export function useAntMedia(params: Params) {
   const onTrack = useCallback(
     (event: any, streamId: string) => {
       if (!remoteStreams[streamId]) {
-        // setRemoteStreams(dt => {
-        //   dt[streamId] = event.streams[0];
-        //   return dt;
-        // });
+        setRemoteStreams((dt) => {
+          dt[streamId] = event.streams[0];
+          return dt;
+        });
         const dataObj = {
           track: event.streams[0],
           streamId,
@@ -550,6 +556,44 @@ export function useAntMedia(params: Params) {
     [ws]
   );
 
+  const joinRoom = useCallback(
+    (room: string, streamId?: string) => {
+      const data = {
+        command: 'joinRoom',
+        room,
+        streamId,
+      };
+      setRoomName(room);
+
+      if (ws) ws.sendJson(data);
+    },
+    [ws]
+  );
+
+  const leaveFromRoom = useCallback(
+    (room: string) => {
+      const data = {
+        command: 'leaveFromRoom',
+        room,
+      };
+      setRoomName(room);
+      if (ws) ws.sendJson(data);
+    },
+    [ws]
+  );
+
+  const getRoomInfo = useCallback(
+    (room: string, streamId?: string) => {
+      var data = {
+        command: 'getRoomInfo',
+        streamId,
+        room,
+      };
+      if (ws) ws.sendJson(data);
+    },
+    [ws]
+  );
+
   //adaptor ref
   useEffect(() => {
     adaptorRef.current = {
@@ -558,10 +602,26 @@ export function useAntMedia(params: Params) {
       stop,
       join,
       leave,
+      joinRoom,
+      leaveFromRoom,
+      getRoomInfo,
+      initPeerConnection,
       localStream,
       remoteStreams,
     };
-  }, [publish, play, stop, localStream, remoteStreams, join, leave]);
+  }, [
+    publish,
+    play,
+    stop,
+    localStream,
+    remoteStreams,
+    join,
+    leave,
+    joinRoom,
+    leaveFromRoom,
+    getRoomInfo,
+    initPeerConnection,
+  ]);
 
   return {
     publish,
@@ -571,6 +631,10 @@ export function useAntMedia(params: Params) {
     remoteStreams,
     join,
     leave,
+    joinRoom,
+    leaveFromRoom,
+    getRoomInfo,
+    initPeerConnection,
   } as Adaptor;
 } // useAntmedia fn end
 
