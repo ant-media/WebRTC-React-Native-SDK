@@ -14,10 +14,6 @@ This repository includes Ant Media React Native SDK for WebRTC.
 
 In order to integrate React Native SDK to your project, please follow [this link](https://resources.antmedia.io/docs/react-native-sdk).
 
-## Security 
-
-If you discover any issues regarding security, please disclose the information responsibly by sending an email to security@antmedia.io.
-
 ## Support
 
 Have any questions about the React Native SDK? Visit our [community platform](http://community.antmedia.io/).
