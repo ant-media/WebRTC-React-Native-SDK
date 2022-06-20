@@ -17,3 +17,6 @@ In order to integrate React Native SDK to your project, please follow [this link
 ## Support
 
 Have any questions about the React Native SDK? Visit our [community platform](http://community.antmedia.io/).
+
+## Issues
+Create issues on the [Ant-Media-Server](https://github.com/ant-media/Ant-Media-Server/issues)
