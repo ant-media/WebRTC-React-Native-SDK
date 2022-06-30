@@ -1,6 +1,6 @@
 {
   "name": "@antmedia/react-native-ant-media",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Ant Media Server WebRTC React Native SDK and Reference Project",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
