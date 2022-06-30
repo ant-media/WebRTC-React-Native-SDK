@@ -25,6 +25,7 @@ export interface Params {
   callbackError?: (errorMessage: string, data?: any) => void;
   peer_connection_config?: any;
   debug?: boolean;
+  onlyDataChannel?: boolean;
 }
 export interface RemoteStreams {
   [key: string]: MediaStream;
@@ -38,10 +39,15 @@ export interface Adaptor {
   joinRoom: (room: string, streamId?: string) => void;
   leaveFromRoom: (room: string) => void;
   getRoomInfo: (room: string, streamId?: string) => void;
-  initPeerConnection: (streamId: string) => Promise<void>;
+  initPeerConnection: (
+    streamId: string,
+    dataChannelMode: 'publish' | 'play' | 'peer'
+  ) => Promise<void>;
   localStream: MutableRefObject<MediaStream | null>;
   remoteStreams: RemoteStreams;
   remoteStreamsMapped: RemoteStreams;
+  peerMessage: (streamId: string, definition: any, data: any) => void;
+  sendData: (streamId: string, message: string) => void;
 }
 export interface RemotePeerConnection {
   [key: string]: RTCPeerConnection;
@@ -56,7 +62,13 @@ export interface RemoteDescriptionSet {
 export interface IceCandidateList {
   [key: string]: RTCIceCandidate[];
 }
-
+export interface Sender {
+  track: MediaStreamTrack;
+  getParameters: () => {
+    encodings?: any;
+  };
+  setParameters: (data: any) => Record<string, unknown>;
+}
 //useAntMedia main adaptor function
 export function useAntMedia(params: Params) {
   const {
@@ -66,6 +78,7 @@ export function useAntMedia(params: Params) {
     callback,
     peer_connection_config,
     debug,
+    onlyDataChannel,
   } = params;
 
   const [roomName, setRoomName] = useState('');
@@ -96,9 +109,9 @@ export function useAntMedia(params: Params) {
 
       if (remotePeerConnection[streamId] != null) {
         // @ts-ignore
-        // if (remotePeerConnection[streamId].dataChannel != null)
-        //   // @ts-ignore
-        //   remotePeerConnection[streamId].dataChannel.close();
+        if (remotePeerConnection[streamId].dataChannel != null)
+          // @ts-ignore
+          remotePeerConnection[streamId].dataChannel.close();
 
         setRemoteStreams((value: any) => {
           const val = { ...value };
@@ -181,8 +194,45 @@ export function useAntMedia(params: Params) {
     [callback, remoteStreams]
   );
 
+  const initDataChannel = useCallback((streamId: string, dataChannel: any) => {
+    dataChannel.onerror = (error: any) => {
+      console.log('Data Channel Error:', error);
+      const obj = {
+        streamId: streamId,
+        error: error,
+      };
+      console.log('channel status: ', dataChannel.readyState);
+      if (dataChannel.readyState !== 'closed' && callbackError) {
+        callbackError('data_channel_error', obj);
+      }
+    };
+
+    dataChannel.onmessage = (event: any) => {
+      const obj = {
+        streamId: streamId,
+        event: event,
+      };
+      if (callback && adaptorRef.current)
+        callback.call(adaptorRef.current, 'data_received', obj);
+    };
+
+    dataChannel.onopen = () => {
+      // @ts-ignore
+      remotePeerConnection[streamId].dataChannel = dataChannel;
+      console.log('Data channel is opened');
+      if (callback && adaptorRef.current)
+        callback.call(adaptorRef.current, 'data_channel_opened', streamId);
+    };
+
+    dataChannel.onclose = () => {
+      console.log('Data channel is closed');
+      if (callback && adaptorRef.current)
+        callback.call(adaptorRef.current, 'data_channel_closed', streamId);
+    };
+  }, []);
+
   const initPeerConnection = useCallback(
-    async (streamId: string) => {
+    async (streamId: string, dataChannelMode: 'publish' | 'play' | 'peer') => {
       if (debug) console.log('in initPeerConnection');
 
       if (remotePeerConnection[streamId] == null) {
@@ -243,6 +293,39 @@ export function useAntMedia(params: Params) {
               return val;
             });
           };
+
+          if (dataChannelMode === 'publish') {
+            //open data channel if it's publish mode peer connection
+            const dataChannelOptions = {
+              ordered: true,
+            };
+            const dataChannelPeer = remotePeerConnection[
+              streamId
+            ].createDataChannel(streamId, dataChannelOptions);
+            initDataChannel(streamId, dataChannelPeer);
+          } else if (dataChannelMode === 'play') {
+            //in play mode, server opens the data channel
+            // Property 'ondatachannel' does not exist on type 'RTCPeerConnection' react-native-webrtc
+            // @ts-ignore
+            remotePeerConnection[streamId].ondatachannel = (event: any) => {
+              initDataChannel(streamId, event.channel);
+            };
+          } else {
+            //for peer mode do both for now
+            const dataChannelOptions = {
+              ordered: true,
+            };
+
+            const dataChannelPeer = remotePeerConnection[
+              streamId
+            ].createDataChannel(streamId, dataChannelOptions);
+            initDataChannel(streamId, dataChannelPeer);
+
+            // @ts-ignore
+            remotePeerConnection[streamId].ondatachannel = (ev: any) => {
+              initDataChannel(streamId, ev.channel);
+            };
+          }
         } catch (err: any) {
           if (debug) console.error('initPeerConnectionError', err.message);
         }
@@ -288,7 +371,7 @@ export function useAntMedia(params: Params) {
       try {
         if (debug) console.log('in start publishing');
 
-        await initPeerConnection(streamId);
+        await initPeerConnection(streamId, 'publish');
         const configuration = await remotePeerConnection[streamId].createOffer(
           config
         );
@@ -321,7 +404,11 @@ export function useAntMedia(params: Params) {
 
       if (debug) console.log('in takeConfiguration');
 
-      await initPeerConnection(streamId);
+      let dataChannelMode: 'publish' | 'play' = 'publish';
+      if (isTypeOffer) {
+        dataChannelMode = 'play';
+      }
+      await initPeerConnection(streamId, dataChannelMode);
       try {
         await remotePeerConnection[streamId].setRemoteDescription(
           new RTCSessionDescription({
@@ -383,7 +470,7 @@ export function useAntMedia(params: Params) {
         sdpMid,
       });
 
-      await initPeerConnection(streamId);
+      await initPeerConnection(streamId, 'peer');
 
       if (remoteDescriptionSet[streamId] === true) {
         await addIceCandidate(streamId, candidate);
@@ -428,20 +515,25 @@ export function useAntMedia(params: Params) {
       if (debug) console.log('web socket opened !');
 
       // connection opened
-      mediaDevices
-        .getUserMedia(mediaConstraints)
-        .then((stream: any) => {
-          // Got stream!
-          if (debug) console.log('got stream');
 
-          localStream.current = stream;
+      if (!onlyDataChannel) {
+        mediaDevices
+          .getUserMedia(mediaConstraints)
+          .then((stream: any) => {
+            // Got stream!
+            if (debug) console.log('got stream');
 
-          if (debug) console.log('in stream', localStream.current);
-        })
-        .catch((error: any) => {
-          // Log error
-          if (debug) console.log('got error', error);
-        });
+            localStream.current = stream;
+
+            if (debug) console.log('in stream', localStream.current);
+          })
+          .catch((error: any) => {
+            // Log error
+            if (debug) console.log('got error', error);
+          });
+      } else {
+        if (debug) console.log('only data channel');
+      }
 
       ws.sendJson({
         command: 'ping',
@@ -539,17 +631,46 @@ export function useAntMedia(params: Params) {
     ws,
   ]);
 
-  //publish
   const publish = useCallback(
-    (streamId: any, token: any) => {
-      if (!localStream.current) return;
-      const data = {
-        command: 'publish',
-        streamId,
-        token,
-        video: localStream.current.getVideoTracks().length > 0,
-        audio: localStream.current.getAudioTracks().length > 0,
-      };
+    (
+      streamId: string,
+      token?: string,
+      subscriberId?: string,
+      subscriberCode?: string
+    ) => {
+      let data = {} as any;
+      if (onlyDataChannel) {
+        data = {
+          command: 'publish',
+          streamId: streamId,
+          token: token,
+          subscriberId: typeof subscriberId !== undefined ? subscriberId : '',
+          subscriberCode:
+            typeof subscriberCode !== undefined ? subscriberCode : '',
+          video: false,
+          audio: false,
+        };
+      } else {
+        if (!localStream.current) return;
+
+        let [video, audio] = [false, false];
+
+        // @ts-ignore
+        video = localStream.current.getVideoTracks().length > 0;
+        // @ts-ignore
+        audio = localStream.current.getAudioTracks().length > 0;
+
+        data = {
+          command: 'publish',
+          streamId,
+          token,
+          subscriberId: typeof subscriberId !== undefined ? subscriberId : '',
+          subscriberCode:
+            typeof subscriberCode !== undefined ? subscriberCode : '',
+          video,
+          audio,
+        };
+      }
 
       if (ws) ws.sendJson(data);
     },
@@ -647,6 +768,30 @@ export function useAntMedia(params: Params) {
     [ws]
   );
 
+  //Data Channel
+  const peerMessage = useCallback(
+    (streamId: string, definition: any, data: any) => {
+      const jsCmd = {
+        command: 'peerMessageCommand',
+        streamId: streamId,
+        definition: definition,
+        data: data,
+      };
+      if (ws) ws.sendJson(jsCmd);
+    },
+    [ws]
+  );
+
+  const sendData = useCallback(
+    (streamId: string, message: string) => {
+      // @ts-ignore
+      const dataChannel = remotePeerConnection[streamId].dataChannel;
+      dataChannel.send(message);
+      if (debug) console.log(' send message in server', message);
+    },
+    [ws]
+  );
+
   //adaptor ref
   useEffect(() => {
     adaptorRef.current = {
@@ -662,6 +807,8 @@ export function useAntMedia(params: Params) {
       localStream,
       remoteStreams,
       remoteStreamsMapped,
+      peerMessage,
+      sendData,
     };
   }, [
     publish,
@@ -676,6 +823,8 @@ export function useAntMedia(params: Params) {
     leaveFromRoom,
     getRoomInfo,
     initPeerConnection,
+    peerMessage,
+    sendData,
   ]);
 
   return {
@@ -691,6 +840,8 @@ export function useAntMedia(params: Params) {
     leaveFromRoom,
     getRoomInfo,
     initPeerConnection,
+    peerMessage,
+    sendData,
   } as Adaptor;
 } // useAntmedia fn end
 
