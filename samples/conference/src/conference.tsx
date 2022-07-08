@@ -2,6 +2,7 @@ import React, {useCallback, useRef, useState, useEffect} from 'react';
 
 import {
   View,
+  Platform,
   StyleSheet,
   TouchableOpacity,
   Text,
@@ -12,22 +13,22 @@ import {useAntMedia, rtc_view} from '@antmedia/react-native-ant-media';
 import InCallManager from 'react-native-incall-manager';
 
 export default function Conference() {
-  var defaultRoomName = 'roomTest1';
+  var defaultRoomName = 'streamTest1';
   const webSocketUrl = 'ws://server.com:5080/WebRTCAppEE/websocket';
   //or webSocketUrl: 'wss://server.com:5443/WebRTCAppEE/websocket',
 
   const [localMedia, setLocalMedia] = useState('');
-  const [remoteStreams, setremoteStreams] = useState([]);
-  const [remoteStreams1, updateRemoteStreams1] = useState([]);
-  const [remoteMedia, setRemoteStream] = useState<string>('');
+  const [remoteStreams, setremoteStreams] = useState<any>([]);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [roomId, setRoomId] = useState(defaultRoomName);
-  const [maximizedStream, setMaximizedStream] = useState(null);
   const stream = useRef({id: ''}).current;
-  let roomTimerId: any = useRef(null).current;
+  let roomTimerId: any = useRef(0).current;
   let streamsList: any = useRef([]).current;
+  const [PlayStreamsListArr, updatePlayStreamsListArr] = useState<any>([]);
+
+  let allStreams: any = [];
 
   const adaptor = useAntMedia({
     url: webSocketUrl,
@@ -45,24 +46,29 @@ export default function Conference() {
         case 'pong':
           break;
         case 'joinedTheRoom':
+          console.log('joined the room!');
+
           const tok = data.ATTR_ROOM_NAME;
-          adaptor.initPeerConnection(data.streamId);
           adaptor.publish(data.streamId, tok);
-          stream.id = data.streamId;
           const streams = data.streams;
 
           if (streams != null) {
             streams.forEach((item: any) => {
-              if (item === stream.id) {
-                return;
-              }
+              if (item === stream.id) return;
               adaptor.play(item, tok, roomId);
             });
             streamsList = streams;
+            updatePlayStreamsListArr([]);
+
+            //reset media streams
+            setremoteStreams([]);
+
+            updatePlayStreamsListArr(streams);
           }
+
           roomTimerId = setInterval(() => {
             adaptor.getRoomInfo(roomId, data.streamId);
-          }, 3000);
+          }, 5000);
 
           break;
         case 'publish_started':
@@ -76,19 +82,47 @@ export default function Conference() {
           adaptor.play(data.streamId, undefined, roomId);
           break;
         case 'leavedFromRoom':
-          const remoteStreamsArr: any = [];
-          updateRemoteStreams1(remoteStreamsArr);
+          console.log('leavedFromRoom');
 
           clearRoomInfoInterval();
+
+          if (PlayStreamsListArr != null) {
+            PlayStreamsListArr.forEach(function (item: any) {
+              removeRemoteVideo(item);
+            });
+          }
+
+          // we need to reset streams list
+          updatePlayStreamsListArr([]);
+
+          //reset media streams
+          setremoteStreams([]);
+          break;
+        case 'play_finished':
+          console.log('play_finished');
+          removeRemoteVideo(data.streamId);
           break;
         case 'roomInformation':
-          const token = data.ATTR_ROOM_NAME;
+          //Checks if any new stream has added, if yes, plays.
           for (let str of data.streams) {
-            if (!streamsList.includes(str)) {
-              adaptor.play(str, token, roomId);
+            if (!PlayStreamsListArr.includes(str)) {
+              adaptor.play(str, tok, roomId);
             }
           }
-          streamsList = data.streams;
+
+          // Checks if any stream has been removed, if yes, removes the view and stops web rtc connection.
+          for (let str of PlayStreamsListArr) {
+            if (!data.streams.includes(str)) {
+              removeRemoteVideo(str);
+            }
+          }
+
+          //Lastly updates the current stream list with the fetched one.
+          updatePlayStreamsListArr(data.streams);
+
+          console.log(Platform.OS, 'data.streams', data.streams);
+          console.log(Platform.OS, 'PlayStreamsListArr', PlayStreamsListArr);
+
           break;
         default:
           break;
@@ -109,9 +143,8 @@ export default function Conference() {
   });
 
   const clearRoomInfoInterval = () => {
-    if (roomTimerId != null) {
-      clearInterval(roomTimerId);
-    }
+    console.log('interval cleared');
+    clearInterval(roomTimerId);
   };
 
   const handleConnect = useCallback(() => {
@@ -124,11 +157,21 @@ export default function Conference() {
   const handleDisconnect = useCallback(() => {
     if (adaptor) {
       adaptor.leaveFromRoom(roomId);
+
+      allStreams = [];
+
       clearRoomInfoInterval();
       setIsPlaying(false);
-      setMaximizedStream(null);
     }
   }, [adaptor, clearRoomInfoInterval, roomId]);
+
+  const removeRemoteVideo = (streamId: any) => {
+    streamsList = [];
+
+    adaptor.stop(streamId);
+    streamsList = PlayStreamsListArr.filter((item: any) => item !== streamId);
+    updatePlayStreamsListArr(streamsList);
+  };
 
   useEffect(() => {
     const verify = () => {
@@ -141,33 +184,50 @@ export default function Conference() {
   }, [adaptor.localStream]);
 
   useEffect(() => {
-    if (localMedia && remoteMedia) {
+    if (localMedia && remoteStreams) {
       InCallManager.start({media: 'video'});
     }
-  }, [localMedia, remoteMedia]);
+  }, [localMedia, remoteStreams]);
 
   const getRemoteStreams = () => {
-    const remoteStreamsFn: any = [];
-    updateRemoteStreams1(remoteStreamsFn);
-    if (adaptor && Object.keys(adaptor.remoteStreams).length > 0) {
-      for (let i in adaptor.remoteStreams) {
-        if (i !== stream.id) {
-          let st =
-            adaptor.remoteStreams[i] && 'toURL' in adaptor.remoteStreams[i]
-              ? adaptor.remoteStreams[i].toURL()
-              : null;
+    const remoteStreamArr: any = [];
 
-          if (st) {
-            remoteStreamsFn.push(st);
-          }
+    if (adaptor && Object.keys(adaptor.remoteStreamsMapped).length > 0) {
+      for (let i in adaptor.remoteStreamsMapped) {
+        let st =
+          adaptor.remoteStreamsMapped[i] &&
+          'toURL' in adaptor.remoteStreamsMapped[i]
+            ? adaptor.remoteStreamsMapped[i].toURL()
+            : null;
+
+        if (PlayStreamsListArr.includes(i)) {
+          if (st) remoteStreamArr.push(st);
         }
       }
-
-      updateRemoteStreams1(remoteStreamsFn);
     }
 
-    setremoteStreams(remoteStreams1);
+    setremoteStreams(remoteStreamArr);
   };
+
+  useEffect(() => {
+    const remoteStreamArr: any = [];
+
+    if (adaptor && Object.keys(adaptor.remoteStreamsMapped).length > 0) {
+      for (let i in adaptor.remoteStreamsMapped) {
+        let st =
+          adaptor.remoteStreamsMapped[i] &&
+          'toURL' in adaptor.remoteStreamsMapped[i]
+            ? adaptor.remoteStreamsMapped[i].toURL()
+            : null;
+
+        if (PlayStreamsListArr.includes(i)) {
+          if (st) remoteStreamArr.push(st);
+        }
+      }
+    }
+
+    setremoteStreams(remoteStreamArr);
+  }, [adaptor.remoteStreamsMapped]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -186,8 +246,16 @@ export default function Conference() {
             <Text style={styles.heading1}>Remote Streams</Text>
             {remoteStreams.length <= 3 ? (
               <>
-                <View style={styles.remotePlayersWrap}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignSelf: 'center',
+                    margin: 5,
+                  }}>
                   {remoteStreams.map((a, index) => {
+                    const count = remoteStreams.length;
+                    console.log('count', count);
+
                     if (a)
                       return (
                         <View key={index}>
@@ -233,11 +301,6 @@ const styles = StyleSheet.create({
     height: 150,
     justifyContent: 'center',
     alignSelf: 'center',
-  },
-  remotePlayersWrap: {
-    flexDirection: 'row',
-    alignSelf: 'center',
-    margin: 5,
   },
   localPlayer: {
     backgroundColor: '#DDDDDD',
