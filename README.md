@@ -8,7 +8,7 @@ running on-premises or on any cloud provider of your choice.
 
 ## About React Native SDK
 
-This repository includes Ant Media React Native SDK for WebRTC. 
+This repository includes Ant Media React Native SDK for WebRTC. This repository is not compatible with the community edition.
 
 ## Integration 
 
