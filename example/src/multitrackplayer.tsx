@@ -1,8 +1,7 @@
-import React, { useCallback, useRef, useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 
 import {
   View,
-  Platform,
   StyleSheet,
   TouchableOpacity,
   Text,
@@ -11,17 +10,12 @@ import {
 // @ts-ignore
 import { useAntMedia, rtc_view } from '@antmedia/react-native-ant-media';
 
-import InCallManager from 'react-native-incall-manager';
-
 export default function MultiTrackPlayer() {
   var defaultRoomName = 'room1';
   const webSocketUrl = 'wss://abc.mustafa-boleken-ams-test.tech:5443/LiveApp/websocket';
 
-  const [remoteStreams, setremoteStreams] = useState<any>([]);
-
   const [isPlaying, setIsPlaying] = useState(false);
   const [roomId, setRoomId] = useState(defaultRoomName);
-  const [PlayStreamsListArr, updatePlayStreamsListArr] = useState<any>([]);
 
   const [tracks, setTracks] = useState<any>([]);
 
@@ -106,12 +100,6 @@ export default function MultiTrackPlayer() {
       adaptor.stop(roomId);
     }
   }, [adaptor, roomId]);
-
-  useEffect(() => {
-    if (remoteStreams) {
-      InCallManager.start({ media: 'video' });
-    }
-  }, [remoteStreams]);
 
   // @ts-ignore
   return (

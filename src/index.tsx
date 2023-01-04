@@ -121,23 +121,28 @@ export function useAntMedia(params: Params) {
 
         setRemoteStreams((value: any) => {
           const val = { ...value };
+          // TODO:
+          /*
           const streams = [...remotePeerConnection[streamId].getLocalStreams()];
           streams.forEach((stream) => {
             if (localStream.current?.toURL() !== stream.toURL()) {
               delete val[stream.toURL()];
             }
           });
+
+           */
           return val;
         });
 
         setRemoteStreamsMapped((value: any) => {
           const val = { ...value };
-          const streams = [...remotePeerConnection[streamId].getLocalStreams()];
-          streams.forEach((stream) => {
-            if (localStream.current?.toURL() !== stream.toURL()) {
-              delete val[streamId];
-            }
-          });
+          // TODO:
+          //const streams = [...remotePeerConnection[streamId].getLocalStreams()];
+          //streams.forEach((stream) => {
+          //  if (localStream.current?.toURL() !== stream.toURL()) {
+          //    delete val[streamId];
+          //  }
+          //});
           return val;
         });
 
@@ -256,7 +261,7 @@ export function useAntMedia(params: Params) {
 
         if (!playStreamIds.includes(streamId)) {
           if (localStream.current) {
-            remotePeerConnection[streamId].addStream(localStream.current);
+            // TODO: remotePeerConnection[streamId].addStream(localStream.current);
           }
         }
 
@@ -450,13 +455,13 @@ export function useAntMedia(params: Params) {
         iceCandidateList[streamId] = [];
 
         if (isTypeOffer) {
-          const configure = await remotePeerConnection[streamId].createAnswer(
-            sdpConstraints
-          );
+          // TODO: const configure = await remotePeerConnection[streamId].createAnswer(
+          //  sdpConstraints
+          //);
           //support for stereo
           // @ts-ignore
-          configure.sdp = configure.sdp.replace("useinbandfec=1", "useinbandfec=1; stereo=1");
-          await gotDescription(configure, streamId);
+          //configure.sdp = configure.sdp.replace("useinbandfec=1", "useinbandfec=1; stereo=1");
+          //await gotDescription(configure, streamId);
         }
       } catch (error: any) {
         if (

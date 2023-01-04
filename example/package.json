@@ -9,10 +9,10 @@
     "start": "react-native start"
   },
   "dependencies": {
-    "react": "16.13.1",
-    "react-native": "0.63.4",
-    "react-native-incall-manager": "^3.3.0",
-    "react-native-webrtc": "^1.100.1"
+    "react": "18.1.0",
+    "react-native": "0.70.5",
+    "react-native-incall-manager": "^4.0.1",
+    "react-native-webrtc": "^106.0.1"
   },
   "devDependencies": {
     "@babel/core": "^7.12.10",

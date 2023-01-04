@@ -2,7 +2,7 @@
   "compilerOptions": {
     "baseUrl": "./",
     "paths": {
-      "@antmedia/react-native-ant-media": ["./src/index"]
+      "@antmedia/react-native-ant-media": ["./index"]
     },
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
