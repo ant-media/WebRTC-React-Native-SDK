@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Text,
 } from 'react-native';
+// @ts-ignore
 import {useAntMedia, rtc_view} from '@antmedia/react-native-ant-media';
 
 export default function App() {
@@ -89,6 +90,7 @@ export default function App() {
     adaptor.stop(streamNameRef.current);
   }, [adaptor]);
 
+  // @ts-ignore
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.box}>

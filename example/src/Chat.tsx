@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState, useEffect } from 'react';
-
+// @ts-ignore
 import { useAntMedia, rtc_view } from '@antmedia/react-native-ant-media';
 
 import {
@@ -105,6 +105,7 @@ const Chat: React.FC = () => {
     };
   }, []);
 
+  // @ts-ignore
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.box}>

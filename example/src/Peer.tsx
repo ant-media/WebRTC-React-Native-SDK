@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Text,
 } from 'react-native';
+// @ts-ignore
 import {useAntMedia, rtc_view} from '@antmedia/react-native-ant-media';
 
 import InCallManager from 'react-native-incall-manager';
@@ -114,6 +115,7 @@ export default function App() {
     setIsPlaying(false);
   }, [adaptor]);
 
+  // @ts-ignore
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.box}>
