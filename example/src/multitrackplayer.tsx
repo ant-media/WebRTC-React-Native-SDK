@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import {
   View,
@@ -9,14 +9,17 @@ import {
 } from 'react-native';
 // @ts-ignore
 import { useAntMedia, rtc_view } from '@antmedia/react-native-ant-media';
+// @ts-ignore
+import { MediaStream } from 'react-native-webrtc';
 
 export default function MultiTrackPlayer() {
   var defaultRoomName = 'room1';
-  const webSocketUrl = 'wss://abc.mustafa-boleken-ams-test.tech:5443/LiveApp/websocket';
+  const webSocketUrl = 'wss://ovh36.antmedia.io:5443/LiveApp/websocket';
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [roomId, setRoomId] = useState(defaultRoomName);
 
+  const [remoteStreams, setremoteStreams] = useState<any>([]);
   const [tracks, setTracks] = useState<any>([]);
 
   const adaptor = useAntMedia({
@@ -30,9 +33,6 @@ export default function MultiTrackPlayer() {
       OfferToReceiveVideo : true
     },
     callback(command: any, data: any) {
-      if (command != 'pong') {
-        console.log('BOLA: callback', command, data);
-      }
       switch (command) {
         case 'pong':
           break;
@@ -41,9 +41,12 @@ export default function MultiTrackPlayer() {
           break;
         case 'play_started':
           console.log('play_started');
+          //reset media streams
+          setremoteStreams([]);
           break;
         case 'play_finished':
           console.log('play_finished');
+          setremoteStreams([]);
           break;
         case 'closed':
           if (typeof data != undefined) {
@@ -51,8 +54,8 @@ export default function MultiTrackPlayer() {
           }
           break;
         case 'newStreamAvailable':
-          console.log("***************************");
-          // TODO: playVideo(data);
+          console.log('newStreamAvailable');
+          playVideo(data);
           break;
         case 'updatedStats':
           console.log("Average incoming kbits/sec: " + data.averageIncomingBitrate
@@ -61,7 +64,8 @@ export default function MultiTrackPlayer() {
             + " fractionLost: " + data.fractionLost);
           break;
         case 'trackList':
-          // TODO: addTrackList(data.streamId, data.trackList);
+          console.log('trackList', data.trackList);
+          addTrackList(data.streamId, data.trackList);
           break;
         default:
           break;
@@ -82,6 +86,41 @@ export default function MultiTrackPlayer() {
     isPlayMode: true,
   });
 
+  function addTrackList(streamId: string, trackList: []) {
+    tracks.push(streamId);
+    trackList.forEach(function(trackId) {
+      tracks.push(trackId);
+    });
+    console.log('addTrackList -> tracks', tracks);
+  }
+
+  function playVideo(obj: any) {
+    console.log("new stream available with id: "
+      + obj.streamId + "on the room:" + roomId);
+
+    let index: string = "";
+    if(obj.track.kind == "video") {
+      //index = obj.trackId.replace("ARDAMSv", "");
+    } else if(obj.track.kind == "audio") {
+      //index = obj.trackId.replace("ARDAMSa", "");
+    }
+
+    if(index == roomId) {
+      return;
+    }
+
+    let remoteStreamArr = remoteStreams;
+
+    let a;
+    if (obj.track !== undefined && obj.track !== null) {
+      let mediaStream: MediaStream = new MediaStream([obj.track]);
+    }
+
+    tracks.push(obj.track);
+
+    setremoteStreams(remoteStreamArr);
+  }
+
   const handleConnect = useCallback(() => {
     let enabledTracks: string[] = [];
     tracks.forEach((track: any) => {
@@ -89,7 +128,6 @@ export default function MultiTrackPlayer() {
         enabledTracks.push(track);
       }
     });
-    console.log("------------------------------------");
     adaptor.play(roomId, "", roomId, enabledTracks, "", "", "");
     setIsPlaying(true);
   }, [adaptor, roomId]);
@@ -101,6 +139,10 @@ export default function MultiTrackPlayer() {
     }
   }, [adaptor, roomId]);
 
+  useEffect(() => {
+    console.log('useEffect -> tracks', tracks);
+  }, [tracks]);
+
   // @ts-ignore
   return (
     <SafeAreaView style={styles.container}>
@@ -108,6 +150,28 @@ export default function MultiTrackPlayer() {
         <Text style={styles.heading}>Ant Media WebRTC Multi Track Player</Text>
         {!isPlaying ? (
           <>
+              <>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignSelf: 'center',
+                    margin: 5,
+                  }}
+                >
+                  {remoteStreams.map((a: MediaStream, index: any) => {
+                    const count = tracks.length;
+                    console.log('count', count);
+
+                    if (a)
+                      return (
+                        <View key={index}>
+                          <>{rtc_view(a, styles.players)}</>
+                        </View>
+                      );
+                  })}
+                </View>
+              </>
+
             <TouchableOpacity onPress={handleConnect} style={styles.button}>
               <Text>Start Playing</Text>
             </TouchableOpacity>

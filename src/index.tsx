@@ -64,6 +64,9 @@ export interface RemoteDescriptionSet {
 export interface IceCandidateList {
   [key: string]: RTCIceCandidate[];
 }
+export interface IdMappingSet {
+  [key: string]: {};
+}
 export interface Sender {
   track: MediaStreamTrack;
   getParameters: () => {
@@ -107,7 +110,7 @@ export function useAntMedia(params: Params) {
 
   const playStreamIds = useRef<string[]>([]).current;
 
-  const idMapping = useRef<[]>([]).current;
+  const idMapping = useRef<IdMappingSet>({}).current;
 
   const closePeerConnection = useCallback(
     (streamId: string) => {
@@ -118,33 +121,6 @@ export function useAntMedia(params: Params) {
         if (remotePeerConnection[streamId].dataChannel != null)
           // @ts-ignore
           remotePeerConnection[streamId].dataChannel.close();
-
-        setRemoteStreams((value: any) => {
-          const val = { ...value };
-          // TODO:
-          /*
-          const streams = [...remotePeerConnection[streamId].getLocalStreams()];
-          streams.forEach((stream) => {
-            if (localStream.current?.toURL() !== stream.toURL()) {
-              delete val[stream.toURL()];
-            }
-          });
-
-           */
-          return val;
-        });
-
-        setRemoteStreamsMapped((value: any) => {
-          const val = { ...value };
-          // TODO:
-          //const streams = [...remotePeerConnection[streamId].getLocalStreams()];
-          //streams.forEach((stream) => {
-          //  if (localStream.current?.toURL() !== stream.toURL()) {
-          //    delete val[streamId];
-          //  }
-          //});
-          return val;
-        });
 
         if (remotePeerConnection[streamId].signalingState !== 'closed') {
           remotePeerConnection[streamId].close();
@@ -192,12 +168,12 @@ export function useAntMedia(params: Params) {
           dt[streamId] = event.streams[0];
           return dt;
         });
+      } else {
         const dataObj = {
           stream: event.streams[0],
           track: event.track,
           streamId: streamId,
-          // @ts-ignore
-          trackId: idMapping[streamId][event.transceiver.mid]
+          trackId: idMapping[streamId][event.transceiver._mid]
         };
 
         if (adaptorRef.current) {
@@ -261,7 +237,7 @@ export function useAntMedia(params: Params) {
 
         if (!playStreamIds.includes(streamId)) {
           if (localStream.current) {
-            // TODO: remotePeerConnection[streamId].addStream(localStream.current);
+            localStream.current.getTracks().forEach((track: MediaStreamTrack) => { remotePeerConnection[streamId].addTrack(track, localStream.current); });
           }
         }
 
@@ -273,7 +249,6 @@ export function useAntMedia(params: Params) {
           // @ts-ignore
           remotePeerConnection[streamId].ontrack = (event: any) => {
             if (debug) console.log('onTrack', event);
-            console.log('-> ######### onTrack', event);
             onTrack(event, closedStreamId);
           };
 
@@ -421,7 +396,7 @@ export function useAntMedia(params: Params) {
   );
 
   const takeConfiguration = useCallback(
-    async (idOfStream: string, configuration, typeOfConfiguration, idMapping) => {
+    async (idOfStream: string, configuration, typeOfConfiguration, idMapping2) => {
       const streamId = idOfStream;
       const type = typeOfConfiguration;
       const conf = configuration;
@@ -434,7 +409,7 @@ export function useAntMedia(params: Params) {
         dataChannelMode = 'play';
       }
 
-      idMapping[streamId] = idMapping;
+      idMapping[idOfStream] = idMapping2;
 
       await initPeerConnection(streamId, dataChannelMode);
 
@@ -455,13 +430,11 @@ export function useAntMedia(params: Params) {
         iceCandidateList[streamId] = [];
 
         if (isTypeOffer) {
-          // TODO: const configure = await remotePeerConnection[streamId].createAnswer(
-          //  sdpConstraints
-          //);
-          //support for stereo
+          const configure = await remotePeerConnection[streamId].createAnswer();
+          // support for stereo
           // @ts-ignore
-          //configure.sdp = configure.sdp.replace("useinbandfec=1", "useinbandfec=1; stereo=1");
-          //await gotDescription(configure, streamId);
+          configure.sdp = configure.sdp.replace("useinbandfec=1", "useinbandfec=1; stereo=1");
+          await gotDescription(configure, streamId);
         }
       } catch (error: any) {
         if (
@@ -564,27 +537,13 @@ export function useAntMedia(params: Params) {
       const data = JSON.parse(e.data);
       if (debug) console.log(' onmessage', data);
 
-      if (data.command !== 'pong' && data.command !== 'takeConfiguration' && data.command !== 'takeCandidate') {
-        console.log("----->");
-        console.log('| BOLEKEN onmessage', data);
-        console.log("----->\n");
-      } else if(data.command === 'takeConfiguration') {
-        console.log("----->");
-        console.log('|BOLEKEN onmessage', data.command, data.idMapping);
-        console.log("----->\n");
-      } else if (data.command === 'takeCandidate') {
-        //console.log("<----->");
-        //console.log('BOLEKEN onmessage', data.command);
-        //console.log("<----->");
-      }
-
       switch (data.command) {
         case 'start':
           // start  publishing
           startPublishing(data.streamId);
           break;
         case 'takeCandidate':
-          //console.log(' in takeCandidate', data);
+          if (debug) console.log(' in takeCandidate', data);
           takeCandidate(data.streamId, data.label, data.candidate, data.id);
           break;
         case 'takeConfiguration':
@@ -722,7 +681,7 @@ export function useAntMedia(params: Params) {
         trackList: enabledTracks,
       };
 
-      console.log('play', JSON.stringify(data));
+      if (debug) console.log('play', JSON.stringify(data));
       if (ws) ws.send(JSON.stringify(data));
     },
     [playStreamIds, ws]
