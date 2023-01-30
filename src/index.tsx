@@ -74,6 +74,10 @@ export interface Sender {
   };
   setParameters: (data: any) => Record<string, unknown>;
 }
+
+export function createMediaStream(): MediaStream {
+  return new MediaStream([]);
+}
 //useAntMedia main adaptor function
 export function useAntMedia(params: Params) {
   const {
@@ -173,6 +177,7 @@ export function useAntMedia(params: Params) {
           stream: event.streams[0],
           track: event.track,
           streamId: streamId,
+          // @ts-ignore
           trackId: idMapping[streamId][event.transceiver._mid]
         };
 
@@ -679,6 +684,9 @@ export function useAntMedia(params: Params) {
         token: token,
         room: room,
         trackList: enabledTracks,
+        subscriberId: typeof subscriberId !== undefined ? subscriberId : "" ,
+        subscriberCode: typeof subscriberCode !== undefined ? subscriberCode : "",
+        viewerInfo : metaData
       };
 
       if (debug) console.log('play', JSON.stringify(data));

@@ -15,7 +15,7 @@ import InCallManager from 'react-native-incall-manager';
 
 export default function Conference() {
   var defaultRoomName = 'streamTest1';
-  const webSocketUrl = 'ws://server.com:5080/WebRTCAppEE/websocket';
+  const webSocketUrl = 'wss://ant.mustafa-boleken-ams-test.tech:5443/LiveApp/websocket';
   //or webSocketUrl: 'wss://server.com:5443/WebRTCAppEE/websocket',
 
   const [localMedia, setLocalMedia] = useState('');
@@ -107,7 +107,7 @@ export default function Conference() {
           //Checks if any new stream has added, if yes, plays.
           for (let str of data.streams) {
             if (!PlayStreamsListArr.includes(str)) {
-              adaptor.play(str, tok, roomId);
+              adaptor.play(str, tok, roomId, [], "", "", "");
             }
           }
 
@@ -132,6 +132,11 @@ export default function Conference() {
     callbackError: (err: any, data: any) => {
       console.error('callbackError', err, data);
       clearRoomInfoInterval();
+    },
+    isPlayMode: false,
+    sdpConstraints: {
+      OfferToReceiveAudio : true,
+      OfferToReceiveVideo : true
     },
     peer_connection_config: {
       iceServers: [

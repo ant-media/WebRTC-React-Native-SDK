@@ -8,19 +8,19 @@ import {
   SafeAreaView,
 } from 'react-native';
 // @ts-ignore
-import { useAntMedia, rtc_view } from '@antmedia/react-native-ant-media';
-// @ts-ignore
-import { MediaStream } from 'react-native-webrtc';
+import { useAntMedia, rtc_view, createMediaStream } from '@antmedia/react-native-ant-media';
 
 export default function MultiTrackPlayer() {
   var defaultRoomName = 'room1';
-  const webSocketUrl = 'wss://ovh36.antmedia.io:5443/LiveApp/websocket';
+  const webSocketUrl = 'ws://server.com:5080/WebRTCAppEE/websocket';
+  //or webSocketUrl: 'wss://server.com:5443/WebRTCAppEE/websocket',
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [roomId, setRoomId] = useState(defaultRoomName);
 
   const [remoteStreams, setremoteStreams] = useState<any>([]);
   const [tracks, setTracks] = useState<any>([]);
+  const [trackIds, setTrackIds] = useState<any>([]);
 
   const adaptor = useAntMedia({
     url: webSocketUrl,
@@ -82,7 +82,7 @@ export default function MultiTrackPlayer() {
       ],
       sdpSemantics: 'unified-plan'
     },
-    debug: false,
+    debug: true,
     isPlayMode: true,
   });
 
@@ -91,34 +91,37 @@ export default function MultiTrackPlayer() {
     trackList.forEach(function(trackId) {
       tracks.push(trackId);
     });
-    console.log('addTrackList -> tracks', tracks);
   }
 
   function playVideo(obj: any) {
     console.log("new stream available with id: "
-      + obj.streamId + "on the room:" + roomId);
+      + obj.streamId + " on the room: " + roomId);
 
     let index: string = "";
     if(obj.track.kind == "video") {
-      //index = obj.trackId.replace("ARDAMSv", "");
+      index = obj.trackId.replace("ARDAMSv", "");
     } else if(obj.track.kind == "audio") {
-      //index = obj.trackId.replace("ARDAMSa", "");
+      index = obj.trackId.replace("ARDAMSa", "");
     }
 
     if(index == roomId) {
       return;
     }
 
-    let remoteStreamArr = remoteStreams;
-
-    let a;
-    if (obj.track !== undefined && obj.track !== null) {
-      let mediaStream: MediaStream = new MediaStream([obj.track]);
+    if (obj.track !== "undefined") {
+      if (remoteStreams.length === 0) {
+        let mediaStream = createMediaStream();
+        mediaStream.addTrack(obj.track);
+        remoteStreams.push(mediaStream);
+      } else {
+        remoteStreams[0].addTrack(obj.track);
+      }
     }
 
+    trackIds.push(index);
+    setTrackIds(trackIds)
     tracks.push(obj.track);
-
-    setremoteStreams(remoteStreamArr);
+    setTracks(tracks);
   }
 
   const handleConnect = useCallback(() => {
@@ -128,7 +131,7 @@ export default function MultiTrackPlayer() {
         enabledTracks.push(track);
       }
     });
-    adaptor.play(roomId, "", roomId, enabledTracks, "", "", "");
+    adaptor.play(roomId, "", "", enabledTracks, "", "", "");
     setIsPlaying(true);
   }, [adaptor, roomId]);
 
@@ -140,8 +143,31 @@ export default function MultiTrackPlayer() {
   }, [adaptor, roomId]);
 
   useEffect(() => {
-    console.log('useEffect -> tracks', tracks);
-  }, [tracks]);
+    tracks.forEach((track: any) => {
+      let isAdded = false;
+      let index: string = "";
+      let pairIndex: string = "";
+      if(track.kind == "video") {
+        pairIndex = track.id.replace("ARDAMSa", "");
+      } else if(track.kind == "audio") {
+        pairIndex = track.id.replace("ARDAMSv", "");
+      }
+      remoteStreams.forEach((mediaStream: any) => {
+        if (mediaStream.getTrackById(pairIndex)) {
+          mediaStream.addTrack(track);
+          isAdded = true;
+        }
+      });
+      if (!isAdded) {
+        let mediaStream = createMediaStream();
+        mediaStream.addTrack(track);
+        remoteStreams.push(mediaStream);
+      }
+
+    });
+
+    setremoteStreams(remoteStreams);
+  }, [tracks, remoteStreams]);
 
   // @ts-ignore
   return (
@@ -150,34 +176,32 @@ export default function MultiTrackPlayer() {
         <Text style={styles.heading}>Ant Media WebRTC Multi Track Player</Text>
         {!isPlaying ? (
           <>
-              <>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignSelf: 'center',
-                    margin: 5,
-                  }}
-                >
-                  {remoteStreams.map((a: MediaStream, index: any) => {
-                    const count = tracks.length;
-                    console.log('count', count);
-
-                    if (a)
-                      return (
-                        <View key={index}>
-                          <>{rtc_view(a, styles.players)}</>
-                        </View>
-                      );
-                  })}
-                </View>
-              </>
-
             <TouchableOpacity onPress={handleConnect} style={styles.button}>
               <Text>Start Playing</Text>
             </TouchableOpacity>
           </>
         ) : (
           <>
+            <>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignSelf: 'center',
+                  margin: 5,
+                }}
+              >
+                {remoteStreams.map((a, index) => {
+                  const count = remoteStreams.length;
+
+                  if (a)
+                    return (
+                      <View key={index}>
+                        <>{rtc_view(a.toURL(), styles.players)}</>
+                      </View>
+                    );
+                })}
+              </View>
+            </>
             <TouchableOpacity style={styles.button} onPress={handleDisconnect}>
               <Text style={styles.btnTxt}>Stop Playing</Text>
             </TouchableOpacity>

@@ -59,6 +59,7 @@ export default function App() {
         },
       ],
     },
+    isPlayMode: true,
     debug: true,
   });
 
