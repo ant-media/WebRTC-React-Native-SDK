@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   View,
@@ -17,10 +17,10 @@ export default function MultiTrackPlayer() {
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [roomId, setRoomId] = useState(defaultRoomName);
+  let roomTimerId: any = useRef(0).current;
 
-  const [remoteStreams, setremoteStreams] = useState<any>([]);
+  const [remoteStreams, setremoteStreams] = useState([]);
   const [tracks, setTracks] = useState<any>([]);
-  const [trackIds, setTrackIds] = useState<any>([]);
 
   const adaptor = useAntMedia({
     url: webSocketUrl,
@@ -42,11 +42,15 @@ export default function MultiTrackPlayer() {
         case 'play_started':
           console.log('play_started');
           //reset media streams
-          setremoteStreams([]);
+          roomTimerId = setInterval(() => {
+            refreshRemoteStreams();
+          }, 5000);
           break;
         case 'play_finished':
           console.log('play_finished');
+          clearRoomInfoInterval();
           setremoteStreams([]);
+          setTracks([]);
           break;
         case 'closed':
           if (typeof data != undefined) {
@@ -73,6 +77,7 @@ export default function MultiTrackPlayer() {
     },
     callbackError: (err: any, data: any) => {
       console.error('callbackError', err, data);
+      clearRoomInfoInterval();
     },
     peer_connection_config: {
       iceServers: [
@@ -85,6 +90,11 @@ export default function MultiTrackPlayer() {
     debug: true,
     isPlayMode: true,
   });
+
+  const clearRoomInfoInterval = () => {
+    console.log('interval cleared');
+    clearInterval(roomTimerId);
+  };
 
   function addTrackList(streamId: string, trackList: []) {
     tracks.push(streamId);
@@ -108,18 +118,6 @@ export default function MultiTrackPlayer() {
       return;
     }
 
-    if (obj.track !== "undefined") {
-      if (remoteStreams.length === 0) {
-        let mediaStream = createMediaStream();
-        mediaStream.addTrack(obj.track);
-        remoteStreams.push(mediaStream);
-      } else {
-        remoteStreams[0].addTrack(obj.track);
-      }
-    }
-
-    trackIds.push(index);
-    setTrackIds(trackIds)
     tracks.push(obj.track);
     setTracks(tracks);
   }
@@ -128,7 +126,7 @@ export default function MultiTrackPlayer() {
     let enabledTracks: string[] = [];
     tracks.forEach((track: any) => {
       if (track.enabled) {
-        enabledTracks.push(track);
+        enabledTracks.push(track.trackId);
       }
     });
     adaptor.play(roomId, "", "", enabledTracks, "", "", "");
@@ -142,18 +140,18 @@ export default function MultiTrackPlayer() {
     }
   }, [adaptor, roomId]);
 
-  useEffect(() => {
+  function refreshRemoteStreams() {
+    let remoteStreamsTemp: any = [];
     tracks.forEach((track: any) => {
       let isAdded = false;
-      let index: string = "";
       let pairIndex: string = "";
       if(track.kind == "video") {
-        pairIndex = track.id.replace("ARDAMSa", "");
-      } else if(track.kind == "audio") {
         pairIndex = track.id.replace("ARDAMSv", "");
+      } else if(track.kind == "audio") {
+        pairIndex = track.id.replace("ARDAMSa", "");
       }
-      remoteStreams.forEach((mediaStream: any) => {
-        if (mediaStream.getTrackById(pairIndex)) {
+      remoteStreamsTemp.forEach((mediaStream: any) => {
+        if (mediaStream.id == pairIndex) {
           mediaStream.addTrack(track);
           isAdded = true;
         }
@@ -161,13 +159,17 @@ export default function MultiTrackPlayer() {
       if (!isAdded) {
         let mediaStream = createMediaStream();
         mediaStream.addTrack(track);
-        remoteStreams.push(mediaStream);
+        mediaStream.id = pairIndex;
+        remoteStreamsTemp.push(mediaStream);
       }
-
     });
 
-    setremoteStreams(remoteStreams);
-  }, [tracks, remoteStreams]);
+    setremoteStreams(remoteStreamsTemp);
+  }
+
+  useEffect(() => {
+    refreshRemoteStreams()
+  }, [tracks]);
 
   // @ts-ignore
   return (
@@ -192,6 +194,8 @@ export default function MultiTrackPlayer() {
               >
                 {remoteStreams.map((a, index) => {
                   const count = remoteStreams.length;
+                  console.log('count', count);
+                  console.log('a', a);
 
                   if (a)
                     return (
