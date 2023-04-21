@@ -16,11 +16,11 @@ WebRTC play, Conference and Data Channel features are available in Ant Media Ser
 
 ## Integration 
 
-In order to integrate React Native SDK to your project, please follow [this link](https://resources.antmedia.io/docs/react-native-sdk).
+In order to integrate React Native SDK to your project, please follow [this link](https://antmedia.io/docs/guides/developer-sdk-and-api/sdk-integration/react-native-sdk/).
 
 ## Support
 
-Have any questions about the React Native SDK? Visit our [community platform](http://community.antmedia.io/).
+Have any questions about the React Native SDK? Visit our [Github Discussions](https://github.com/orgs/ant-media/discussions).
 
 ## Issues
 Create issues on the [Ant-Media-Server](https://github.com/ant-media/Ant-Media-Server/issues)
