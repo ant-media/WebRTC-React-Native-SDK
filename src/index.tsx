@@ -71,6 +71,7 @@ export interface Sender {
 }
 //useAntMedia main adaptor function
 export function useAntMedia(params: Params) {
+
   const {
     url,
     mediaConstraints,
@@ -80,7 +81,6 @@ export function useAntMedia(params: Params) {
     debug,
     onlyDataChannel,
   } = params;
-
   const [roomName, setRoomName] = useState('');
 
   const adaptorRef: any = useRef<null | Adaptor>(null);
@@ -113,27 +113,28 @@ export function useAntMedia(params: Params) {
           // @ts-ignore
           remotePeerConnection[streamId].dataChannel.close();
 
-        setRemoteStreams((value: any) => {
-          const val = { ...value };
-          const streams = [...remotePeerConnection[streamId].getLocalStreams()];
-          streams.forEach((stream) => {
-            if (localStream.current?.toURL() !== stream.toURL()) {
-              delete val[stream.toURL()];
-            }
+          setRemoteStreams((value: any) => {
+            const val = { ...value };
+            const senders = remotePeerConnection[streamId].getSenders();
+            senders.forEach((sender) => {
+              const stream = sender.track?.stream;
+              if (stream && localStream.current?.id !== stream.id) {
+                delete val[stream.id];
+              }
+            });
+            return val;
           });
-          return val;
-        });
-
-        setRemoteStreamsMapped((value: any) => {
-          const val = { ...value };
-          const streams = [...remotePeerConnection[streamId].getLocalStreams()];
-          streams.forEach((stream) => {
-            if (localStream.current?.toURL() !== stream.toURL()) {
-              delete val[streamId];
-            }
+          setRemoteStreamsMapped((value: any) => {
+            const val = { ...value };
+            const senders = remotePeerConnection[streamId].getSenders();
+            senders.forEach((sender) => {
+              const stream = sender.track?.stream;
+              if (stream && localStream.current?.id !== stream.id) {
+                delete val[streamId];
+              }
+            });
+            return val;
           });
-          return val;
-        });
 
         if (remotePeerConnection[streamId].signalingState !== 'closed') {
           remotePeerConnection[streamId].close();
@@ -237,93 +238,77 @@ export function useAntMedia(params: Params) {
 
       if (remotePeerConnection[streamId] == null) {
         const closedStreamId = streamId;
-        remotePeerConnection[streamId] = new RTCPeerConnection(
-          config || {
-            iceServers: [],
-          }
-        );
+        remotePeerConnection[streamId] = new RTCPeerConnection(config || { iceServers: [] });
         remoteDescriptionSet[streamId] = false;
         iceCandidateList[streamId] = [];
 
-        if (!playStreamIds.includes(streamId)) {
-          if (localStream.current) {
-            remotePeerConnection[streamId].addStream(localStream.current);
-          }
+        if (!playStreamIds.includes(streamId) && localStream.current) {
+          localStream.current.getTracks().forEach((track) => {
+            remotePeerConnection[streamId].addTrack(track, localStream.current);
+          });
         }
 
         try {
-          remotePeerConnection[streamId].onicecandidate = (event: any) => {
+          remotePeerConnection[streamId].onicecandidate = (event: RTCPeerConnectionIceEvent) => {
             if (debug) console.log('onicecandidate', event);
             iceCandidateReceived(event, closedStreamId);
           };
-          // @ts-ignore
+
           remotePeerConnection[streamId].ontrack = (event: any) => {
             if (debug) console.log('onTrack', event);
             onTrack(event, closedStreamId);
+
+            setRemoteStreams((value) => {
+              const updatedRemoteStreams = { ...value };
+              const streams = event.streams;
+
+              streams.forEach((stream) => {
+                if (localStream.current?.id !== stream.id) {
+                  updatedRemoteStreams[stream.id] = stream;
+                }
+              });
+
+              return updatedRemoteStreams;
+            });
+
+            setRemoteStreamsMapped((value) => {
+              const updatedRemoteStreamsMapped = { ...value };
+              const streams = event.streams;
+
+              streams.forEach((stream) => {
+                if (localStream.current?.id !== stream.id) {
+                  updatedRemoteStreamsMapped[streamId] = stream;
+                }
+              });
+
+              return updatedRemoteStreamsMapped;
+            });
           };
 
-          remotePeerConnection[streamId].onaddstream = (event: any) => {
-            if (debug) console.log('onaddstream', event);
-            setRemoteStreams((value) => {
-              const val = { ...value };
-              const streams = [
-                ...remotePeerConnection[streamId].getLocalStreams(),
-                ...remotePeerConnection[streamId].getRemoteStreams(),
-              ];
-              streams.forEach((stream) => {
-                if (localStream.current?.toURL() !== stream.toURL()) {
-                  val[stream.toURL()] = stream;
-                }
-              });
-              return val;
-            });
 
-            //setRemoteStreamsMapped
-            setRemoteStreamsMapped((value) => {
-              const val = { ...value };
-              const streams = [
-                ...remotePeerConnection[streamId].getLocalStreams(),
-                ...remotePeerConnection[streamId].getRemoteStreams(),
-              ];
-              streams.forEach((stream) => {
-                if (localStream.current?.toURL() !== stream.toURL()) {
-                  val[streamId] = stream;
-                }
-              });
-              return val;
-            });
+          remotePeerConnection[streamId].ondatachannel = (event: RTCDataChannelEvent) => {
+            initDataChannel(streamId, event.channel);
           };
 
           if (dataChannelMode === 'publish') {
-            //open data channel if it's publish mode peer connection
             const dataChannelOptions = {
               ordered: true,
             };
-            const dataChannelPeer = remotePeerConnection[
-              streamId
-            ].createDataChannel(streamId, dataChannelOptions);
+            const dataChannelPeer = remotePeerConnection[streamId].createDataChannel(streamId, dataChannelOptions);
             initDataChannel(streamId, dataChannelPeer);
           } else if (dataChannelMode === 'play') {
-            //in play mode, server opens the data channel
-            // Property 'ondatachannel' does not exist on type 'RTCPeerConnection' react-native-webrtc
-            // @ts-ignore
-            remotePeerConnection[streamId].ondatachannel = (event: any) => {
+            remotePeerConnection[streamId].ondatachannel = (event: RTCDataChannelEvent) => {
               initDataChannel(streamId, event.channel);
             };
           } else {
-            //for peer mode do both for now
             const dataChannelOptions = {
               ordered: true,
             };
-
-            const dataChannelPeer = remotePeerConnection[
-              streamId
-            ].createDataChannel(streamId, dataChannelOptions);
+            const dataChannelPeer = remotePeerConnection[streamId].createDataChannel(streamId, dataChannelOptions);
             initDataChannel(streamId, dataChannelPeer);
 
-            // @ts-ignore
-            remotePeerConnection[streamId].ondatachannel = (ev: any) => {
-              initDataChannel(streamId, ev.channel);
+            remotePeerConnection[streamId].ondatachannel = (event: RTCDataChannelEvent) => {
+              initDataChannel(streamId, event.channel);
             };
           }
         } catch (err: any) {
@@ -401,9 +386,7 @@ export function useAntMedia(params: Params) {
       const type = typeOfConfiguration;
       const conf = configuration;
       const isTypeOffer = type === 'offer';
-
       if (debug) console.log('in takeConfiguration');
-
       let dataChannelMode: 'publish' | 'play' = 'publish';
       if (isTypeOffer) {
         dataChannelMode = 'play';
@@ -416,15 +399,12 @@ export function useAntMedia(params: Params) {
             type,
           })
         );
-
         remoteDescriptionSet[streamId] = true;
         const { length } = Object.keys(iceCandidateList[streamId]);
-
         for (let i = 0; i < length; i++) {
           await addIceCandidate(streamId, iceCandidateList[streamId][i]);
         }
         iceCandidateList[streamId] = [];
-
         if (isTypeOffer) {
           const configur = await remotePeerConnection[streamId].createAnswer(
             conf

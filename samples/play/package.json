@@ -10,10 +10,10 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@antmedia/react-native-ant-media": "^1.0.4",
+    "@antmedia/react-native-ant-media": "^1.0.5",
     "react": "17.0.2",
     "react-native": "0.68.2",
-    "react-native-webrtc": "^1.100.1"
+    "react-native-webrtc": "111.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.18.2",

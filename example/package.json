@@ -12,7 +12,7 @@
     "react": "16.13.1",
     "react-native": "0.63.4",
     "react-native-incall-manager": "^3.3.0",
-    "react-native-webrtc": "^1.100.1"
+    "react-native-webrtc": "111.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.12.10",
