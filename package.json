@@ -145,6 +145,6 @@
     ]
   },
   "dependencies": {
-    "react-native-webrtc": "^1.100.1"
+    "react-native-webrtc": "111.0.0"
   }
 }
