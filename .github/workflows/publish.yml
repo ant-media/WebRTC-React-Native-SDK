@@ -24,7 +24,7 @@ jobs:
         - name: publish
           run: |
            npm install
-           npm publish --access public
+           npm publish
           env:
             NODE_AUTH_TOKE: ${{ secrets.NPM_AUTH_TOKEN }} 
         
