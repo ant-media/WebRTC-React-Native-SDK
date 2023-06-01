@@ -113,23 +113,26 @@ export function useAntMedia(params: Params) {
           // @ts-ignore
           remotePeerConnection[streamId].dataChannel.close();
 
-          setRemoteStreams((value: any) => {
-            const val = { ...value };
-            const senders = remotePeerConnection[streamId].getSenders();
-            senders.forEach((sender) => {
-              const stream = sender.track?.stream;
-              if (stream && localStream.current?.id !== stream.id) {
-                delete val[stream.id];
+          setRemoteStreams((value) => {
+            var val = { ...value };
+            const receivers = remotePeerConnection[streamId].getReceivers();
+            // @ts-ignore
+            receivers.forEach((receiver) => {
+              const track = receiver.track;
+              if (track && localStream.current?.id !== track.id) {
+                  delete val[track.id];
               }
             });
             return val;
           });
+
           setRemoteStreamsMapped((value: any) => {
             const val = { ...value };
-            const senders = remotePeerConnection[streamId].getSenders();
-            senders.forEach((sender) => {
-              const stream = sender.track?.stream;
-              if (stream && localStream.current?.id !== stream.id) {
+            const receivers = remotePeerConnection[streamId].getReceivers();
+            // @ts-ignore
+            receivers.forEach((receiver) => {
+              const track = receiver.track
+              if (track && localStream.current?.id !== track.id) {
                 delete val[streamId];
               }
             });
@@ -151,6 +154,7 @@ export function useAntMedia(params: Params) {
       }
 
       if (remotePeerConnectionStats[streamId] != null) {
+        // @ts-ignore
         clearInterval(remotePeerConnectionStats[streamId].timerId);
         delete remotePeerConnectionStats[streamId];
       }
@@ -243,12 +247,14 @@ export function useAntMedia(params: Params) {
         iceCandidateList[streamId] = [];
 
         if (!playStreamIds.includes(streamId) && localStream.current) {
+          // @ts-ignore
           localStream.current.getTracks().forEach((track) => {
             remotePeerConnection[streamId].addTrack(track, localStream.current);
           });
         }
 
         try {
+          // @ts-ignore
           remotePeerConnection[streamId].onicecandidate = (event: RTCPeerConnectionIceEvent) => {
             if (debug) console.log('onicecandidate', event);
             iceCandidateReceived(event, closedStreamId);
@@ -257,11 +263,11 @@ export function useAntMedia(params: Params) {
           remotePeerConnection[streamId].ontrack = (event: any) => {
             if (debug) console.log('onTrack', event);
             onTrack(event, closedStreamId);
-
+            // @ts-ignore
             setRemoteStreams((value) => {
               const updatedRemoteStreams = { ...value };
               const streams = event.streams;
-
+              // @ts-ignore
               streams.forEach((stream) => {
                 if (localStream.current?.id !== stream.id) {
                   updatedRemoteStreams[stream.id] = stream;
@@ -274,7 +280,7 @@ export function useAntMedia(params: Params) {
             setRemoteStreamsMapped((value) => {
               const updatedRemoteStreamsMapped = { ...value };
               const streams = event.streams;
-
+              // @ts-ignore
               streams.forEach((stream) => {
                 if (localStream.current?.id !== stream.id) {
                   updatedRemoteStreamsMapped[streamId] = stream;
@@ -285,7 +291,7 @@ export function useAntMedia(params: Params) {
             });
           };
 
-
+          // @ts-ignore
           remotePeerConnection[streamId].ondatachannel = (event: RTCDataChannelEvent) => {
             initDataChannel(streamId, event.channel);
           };
@@ -297,6 +303,7 @@ export function useAntMedia(params: Params) {
             const dataChannelPeer = remotePeerConnection[streamId].createDataChannel(streamId, dataChannelOptions);
             initDataChannel(streamId, dataChannelPeer);
           } else if (dataChannelMode === 'play') {
+            // @ts-ignore
             remotePeerConnection[streamId].ondatachannel = (event: RTCDataChannelEvent) => {
               initDataChannel(streamId, event.channel);
             };
@@ -306,7 +313,7 @@ export function useAntMedia(params: Params) {
             };
             const dataChannelPeer = remotePeerConnection[streamId].createDataChannel(streamId, dataChannelOptions);
             initDataChannel(streamId, dataChannelPeer);
-
+            // @ts-ignore
             remotePeerConnection[streamId].ondatachannel = (event: RTCDataChannelEvent) => {
               initDataChannel(streamId, event.channel);
             };
@@ -381,7 +388,7 @@ export function useAntMedia(params: Params) {
   );
 
   const takeConfiguration = useCallback(
-    async (idOfStream: string, configuration, typeOfConfiguration) => {
+    async (idOfStream: string, configuration: string, typeOfConfiguration: string) => {
       const streamId = idOfStream;
       const type = typeOfConfiguration;
       const conf = configuration;
@@ -407,7 +414,7 @@ export function useAntMedia(params: Params) {
         iceCandidateList[streamId] = [];
         if (isTypeOffer) {
           const configur = await remotePeerConnection[streamId].createAnswer(
-            conf
+            
           );
           await gotDescription(configur, streamId);
         }

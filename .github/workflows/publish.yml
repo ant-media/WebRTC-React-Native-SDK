@@ -19,12 +19,12 @@ jobs:
           uses: actions/setup-node@v3
           with: 
             node-version: 14
-            registry-url: 'https://registry.npmjs.org/'
+            registry-url: 'https://registry.npmjs.org'
      
         - name: publish
           run: |
            npm install
-           npm publish --access public
+           npm publish
           env:
-            NODE_AUTH_TOKE: ${{ secrets.NPM_AUTH_TOKEN }} 
+            NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} 
         
