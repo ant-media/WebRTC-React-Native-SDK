@@ -2,9 +2,9 @@ name: "publish"
 
 on: 
    push: 
-     branches: [ updateSdk ]
+     branches: [ main ]
    pull_request:
-     branches: [ updateSdk ]
+     branches: [ main ]
 
 
 jobs: 
