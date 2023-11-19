@@ -414,7 +414,7 @@ export function useAntMedia(params: Params) {
         iceCandidateList[streamId] = [];
         if (isTypeOffer) {
           const configur = await remotePeerConnection[streamId].createAnswer(
-            
+
           );
           await gotDescription(configur, streamId);
         }
@@ -500,7 +500,7 @@ export function useAntMedia(params: Params) {
   useEffect(() => {
     ws.onopen = () => {
       if (debug) console.log('web socket opened !');
-
+      callback.call(adaptorRef.current, 'initiated');
       // connection opened
 
       if (!onlyDataChannel) {
