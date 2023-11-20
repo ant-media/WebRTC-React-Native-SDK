@@ -391,7 +391,8 @@ export function useAntMedia(params: Params) {
     async (idOfStream: string, configuration: string, typeOfConfiguration: string) => {
       const streamId = idOfStream;
       const type = typeOfConfiguration;
-      const conf = configuration;
+      var conf = configuration;
+      conf = conf.replace("a=extmap:13 urn:3gpp:video-orientation\r\n", "");
       const isTypeOffer = type === 'offer';
       if (debug) console.log('in takeConfiguration');
       let dataChannelMode: 'publish' | 'play' = 'publish';
@@ -414,7 +415,7 @@ export function useAntMedia(params: Params) {
         iceCandidateList[streamId] = [];
         if (isTypeOffer) {
           const configur = await remotePeerConnection[streamId].createAnswer(
-            
+
           );
           await gotDescription(configur, streamId);
         }
