@@ -123,6 +123,7 @@ export function useAntMedia(params: Params) {
                   delete val[track.id];
               }
             });
+            delete val[streamId];
             return val;
           });
 
