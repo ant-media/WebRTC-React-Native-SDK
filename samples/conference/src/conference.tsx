@@ -129,8 +129,13 @@ export default function Conference() {
       }
     },
     callbackError: (err: any, data: any) => {
-      console.error('callbackError', err, data);
-      clearRoomInfoInterval();
+      if (err === "no_active_streams_in_room") {
+        // it throws this error when there is no stream in the room
+        // so we shouldn't reset streams list
+      } else {
+        console.error('callbackError', err, data);
+        clearRoomInfoInterval();
+      }
     },
     peer_connection_config: {
       iceServers: [
