@@ -123,6 +123,7 @@ export function useAntMedia(params: Params) {
                   delete val[track.id];
               }
             });
+            delete val[streamId];
             return val;
           });
 
@@ -249,7 +250,7 @@ export function useAntMedia(params: Params) {
         if (!playStreamIds.includes(streamId) && localStream.current) {
           // @ts-ignore
           localStream.current.getTracks().forEach((track) => {
-            remotePeerConnection[streamId].addTrack(track, localStream.current);
+            localStream.current.getTracks().forEach((track: MediaStreamTrack) => { remotePeerConnection[streamId].addTrack(track, localStream.current); });
           });
         }
 
