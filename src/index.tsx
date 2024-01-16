@@ -764,7 +764,7 @@ export function useAntMedia(params: Params) {
         command: 'ping',
       });
     },3000);
-  });
+  },[]);
 
   const clearPingTimer = useCallback(() => {
     if (pingTimer != -1) {
@@ -774,7 +774,7 @@ export function useAntMedia(params: Params) {
       clearInterval(pingTimer);
       pingTimer = -1;
     }
-  });
+  },[]);
 
   //Data Channel
   const peerMessage = useCallback(
