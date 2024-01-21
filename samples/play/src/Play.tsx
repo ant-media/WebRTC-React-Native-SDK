@@ -10,7 +10,7 @@ import {
 import {useAntMedia, rtc_view} from '@antmedia/react-native-ant-media';
 
 export default function App() {
-  var defaultStreamName = 'streamTest1';
+  var defaultStreamName = 'stream111';
   const webSocketUrl = 'ws://server.com:5080/WebRTCAppEE/websocket';
   //or webSocketUrl: 'wss://server.com:5443/WebRTCAppEE/websocket',
 
@@ -29,7 +29,7 @@ export default function App() {
         facingMode: 'front',
       },
     },
-    callback(command: any) {
+    callback(command: any, data: any) {
       switch (command) {
         case 'pong':
           break;
@@ -42,7 +42,11 @@ export default function App() {
           
           setIsPlaying(false);
           setRemoteStream('');
-          break;
+        break;
+        case "newStreamAvailable": 
+        if(data.streamId == streamNameRef.current)
+          setRemoteStream(data.stream.toURL());
+        break;
         default:
           console.log(command);
           break;
@@ -61,18 +65,7 @@ export default function App() {
     debug: true,
   });
 
-  useEffect(() => {
-    if (adaptor && Object.keys(adaptor.remoteStreams).length > 0) {
-      for (let i in adaptor.remoteStreams) {
-        let st =
-          adaptor.remoteStreams[i] && 'toURL' in adaptor.remoteStreams[i]
-            ? adaptor.remoteStreams[i].toURL()
-            : null;
-        setRemoteStream(st || '');
-        break;
-      }
-    }
-  }, [adaptor]);
+
 
   const handlePlay = useCallback(() => {
     if (!adaptor) {
