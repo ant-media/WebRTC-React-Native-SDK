@@ -102,6 +102,8 @@ export function useAntMedia(params: Params) {
   const config: any = peer_connection_config;
 
   const playStreamIds = useRef<string[]>([]).current;
+  
+  var pingTimer: any = -1;
 
   const closePeerConnection = useCallback(
     (streamId: string) => {
@@ -523,10 +525,7 @@ export function useAntMedia(params: Params) {
       } else {
         if (debug) console.log('only data channel');
       }
-
-      ws.sendJson({
-        command: 'ping',
-      });
+      setPingTimer();
     };
 
     ws.onmessage = (e: any) => {
@@ -600,11 +599,13 @@ export function useAntMedia(params: Params) {
 
     ws.onerror = (e: any) => {
       // an error occurred
+      clearPingTimer();
       if (debug) console.log(e.message);
     };
 
     ws.onclose = (e: any) => {
       // connection closed
+      clearPingTimer();
       if (debug) console.log(e.code, e.reason);
     };
   }, [
@@ -756,6 +757,24 @@ export function useAntMedia(params: Params) {
     },
     [ws]
   );
+  const setPingTimer = useCallback(() => {
+    pingTimer = setInterval(()=>{
+      if(ws != null)
+      ws.sendJson({
+        command: 'ping',
+      });
+    },3000);
+  },[]);
+
+  const clearPingTimer = useCallback(() => {
+    if (pingTimer != -1) {
+      if (debug) {
+          console.log("Clearing ping message timer");
+      }
+      clearInterval(pingTimer);
+      pingTimer = -1;
+    }
+  },[]);
 
   //Data Channel
   const peerMessage = useCallback(
