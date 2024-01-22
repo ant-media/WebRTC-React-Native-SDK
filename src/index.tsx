@@ -33,6 +33,8 @@ export interface Adaptor {
   publish: (streamId: string, token?: string, subscriberId?:string , subscriberCode?: string, streamName?: string, mainTrack?:string, metaData?:string) => void;
   play: (streamId: string, token?: string, room?: string , enableTracks?: MediaStream[],subscriberId?:string , subscriberCode?: string,  metaData?:string) => void;
   stop: (streamId: string) => void;
+  join: (streamId: string) => void;
+  leave: (streamId: string) => void;
   getRoomInfo: (room: string, streamId?: string) => void;
   initPeerConnection: (
     streamId: string,
@@ -151,7 +153,7 @@ export function useAntMedia(params: Params) {
           stream: event.streams[0],
           track: event.track,
           streamId: streamId,
-          trackId: idMapping[streamId][event.transceiver.mid],
+          trackId: idMapping[streamId] != undefined ? idMapping[streamId][event.transceiver.mid] : undefined,
         }
         if (adaptorRef.current) {
           callback.call(adaptorRef.current, 'newStreamAvailable', dataObj);
@@ -326,8 +328,7 @@ export function useAntMedia(params: Params) {
   );
 
   const takeConfiguration = useCallback(
-    async (idOfStream: string, configuration: string, typeOfConfiguration: string , idMap?:string) => {
-      const streamId = idOfStream;
+    async (streamId: any, configuration: string, typeOfConfiguration: string , idMap?:string) => {
       const type = typeOfConfiguration;
       var conf = configuration;
       conf = conf.replace("a=extmap:13 urn:3gpp:video-orientation\r\n", "");
@@ -641,6 +642,27 @@ export function useAntMedia(params: Params) {
     [ws]
   );
 
+  const join = useCallback(
+    (streamId: string) => {
+      const data = {
+        command: 'join',
+        streamId,
+      };
+      if (ws) ws.sendJson(data);
+    },
+    [ws]
+  );
+
+  const leave = useCallback(
+    (streamId: string) => {
+      const data = {
+        command: 'leave',
+        streamId,
+      };
+      if (ws) ws.sendJson(data);
+    },
+    [ws]
+  );
 
   const getRoomInfo = useCallback(
     (room: string, streamId?: string) => {
@@ -702,6 +724,8 @@ export function useAntMedia(params: Params) {
       publish,
       play,
       stop,
+      join,
+      leave,
       getRoomInfo,
       initPeerConnection,
       localStream,
@@ -713,6 +737,8 @@ export function useAntMedia(params: Params) {
     play,
     stop,
     localStream,
+    join,
+    leave,
     getRoomInfo,
     initPeerConnection,
     peerMessage,
@@ -724,6 +750,8 @@ export function useAntMedia(params: Params) {
     play,
     stop,
     localStream,
+    join,
+    leave,
     getRoomInfo,
     initPeerConnection,
     peerMessage,
