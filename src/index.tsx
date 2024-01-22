@@ -148,7 +148,7 @@ export function useAntMedia(params: Params) {
   );
 
   const onTrack = useCallback(
-    (event: any, streamId: string) => {
+    (event: any, streamId: any) => {
         const dataObj = {
           stream: event.streams[0],
           track: event.track,
