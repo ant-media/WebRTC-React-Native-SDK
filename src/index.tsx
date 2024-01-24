@@ -328,8 +328,7 @@ export function useAntMedia(params: Params) {
   );
 
   const takeConfiguration = useCallback(
-    async (idOfStream: string, configuration: string, typeOfConfiguration: string , idMap?:string) => {
-      const streamId = idOfStream;
+    async (streamId: string, configuration: string, typeOfConfiguration: string , idMap?:string) => {
       const type = typeOfConfiguration;
       var conf = configuration;
       conf = conf.replace("a=extmap:13 urn:3gpp:video-orientation\r\n", "");
