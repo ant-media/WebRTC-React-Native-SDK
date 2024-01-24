@@ -148,7 +148,7 @@ export function useAntMedia(params: Params) {
   );
 
   const onTrack = useCallback(
-    (event: any, streamId: string) => {
+    (event: any, streamId: any) => {
         const dataObj = {
           stream: event.streams[0],
           track: event.track,
@@ -328,7 +328,7 @@ export function useAntMedia(params: Params) {
   );
 
   const takeConfiguration = useCallback(
-    async (streamId: string, configuration: string, typeOfConfiguration: string , idMap?:string) => {
+    async (streamId: any, configuration: string, typeOfConfiguration: string , idMap?:string) => {
       const type = typeOfConfiguration;
       var conf = configuration;
       conf = conf.replace("a=extmap:13 urn:3gpp:video-orientation\r\n", "");
