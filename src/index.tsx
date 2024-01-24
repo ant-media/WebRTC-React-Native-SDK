@@ -148,12 +148,12 @@ export function useAntMedia(params: Params) {
   );
 
   const onTrack = useCallback(
-    (event: any, streamId: any) => {
+    (event: any, streamId: string) => {
         const dataObj = {
           stream: event.streams[0],
           track: event.track,
           streamId: streamId,
-          trackId: idMapping[streamId] != undefined ? idMapping[streamId][event.transceiver.mid] : undefined,
+          trackId: idMapping[streamId][event.transceiver.mid],
         }
         if (adaptorRef.current) {
           callback.call(adaptorRef.current, 'newStreamAvailable', dataObj);
@@ -328,7 +328,8 @@ export function useAntMedia(params: Params) {
   );
 
   const takeConfiguration = useCallback(
-    async (streamId: any, configuration: string, typeOfConfiguration: string , idMap?:string) => {
+    async (idOfStream: string, configuration: string, typeOfConfiguration: string , idMap?:string) => {
+      const streamId = idOfStream;
       const type = typeOfConfiguration;
       var conf = configuration;
       conf = conf.replace("a=extmap:13 urn:3gpp:video-orientation\r\n", "");
@@ -496,12 +497,6 @@ export function useAntMedia(params: Params) {
 
           if (adaptorRef.current)
             callback.call(adaptorRef.current, data.definition, data);
-          if (
-            data.definition === 'play_finished' ||
-            data.definition === 'publish_finished'
-          ) {
-            closePeerConnection(data.streamId);
-          }
           break;
         case 'roomInformation':
           if (debug) console.log(' in roomInformation', data);
@@ -633,6 +628,8 @@ export function useAntMedia(params: Params) {
 
   const stop = useCallback(
     (streamId: any) => {
+      closePeerConnection(streamId);
+      
       const data = {
         command: 'stop',
         streamId: streamId,

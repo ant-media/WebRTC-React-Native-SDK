@@ -12,11 +12,11 @@ import {
 import { useAntMedia, rtc_view } from '@antmedia/react-native-ant-media';
 
 import InCallManager from 'react-native-incall-manager';
-var publishStreamId;
+var publishStreamId:string;
 
 export default function Conference() {
   var defaultRoomName = 'room1';
-  const webSocketUrl = 'ws://server.com:5080/LiveApp/websocket';
+  const webSocketUrl = 'ws://192.168.0.108:5080/LiveApp/websocket';
   //or webSocketUrl: 'wss://server.com:5443/WebRTCAppEE/websocket',
 
   const [localMedia, setLocalMedia] = useState('');
@@ -42,6 +42,8 @@ export default function Conference() {
         case 'pong':
           break;
         case 'publish_started':
+          adaptor.play(roomId, undefined, roomId, []);
+          setIsPlaying(true);
           setIsPublishing(true);
           break;
         case 'publish_finished':
@@ -52,6 +54,13 @@ export default function Conference() {
           removeRemoteVideo();
           break;
         case "newTrackAvailable": {
+          var incomingTrackId = data.track.id.substring("ARDAMSx".length);
+
+          if (incomingTrackId == roomId || incomingTrackId == publishStreamId) {
+            return;
+          }
+          console.log("new track available with id ", incomingTrackId);
+
           setremoteTracks(prevTracks => {
             const updatedTracks = { ...prevTracks, [data.track.id]: data };
             return updatedTracks;
@@ -89,8 +98,6 @@ export default function Conference() {
     if (adaptor) {
       publishStreamId = generateRandomString(12);
       adaptor.publish(publishStreamId, undefined, undefined, undefined, undefined, roomId, "");
-      adaptor.play(roomId, undefined, roomId, []);
-      setIsPlaying(true);
     }
   }, [adaptor, roomId]);
 
