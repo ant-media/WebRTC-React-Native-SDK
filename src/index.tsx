@@ -153,7 +153,7 @@ export function useAntMedia(params: Params) {
           stream: event.streams[0],
           track: event.track,
           streamId: streamId,
-          trackId: idMapping[streamId][event.transceiver.mid],
+          trackId: idMapping[streamId] != undefined? idMapping[streamId][event.transceiver.mid]:undefined,
         }
         if (adaptorRef.current) {
           callback.call(adaptorRef.current, 'newStreamAvailable', dataObj);
