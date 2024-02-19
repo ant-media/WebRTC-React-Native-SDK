@@ -12,7 +12,7 @@ import {useAntMedia, rtc_view} from '@antmedia/react-native-ant-media';
 import InCallManager from 'react-native-incall-manager';
 
 export default function App() {
-  var defaultStreamName = 'streamTest1';
+  var defaultStreamName = 'stream1';
   const webSocketUrl = 'ws://server.com:5080/WebRTCAppEE/websocket';
   //or webSocketUrl: 'wss://server.com:5443/WebRTCAppEE/websocket',
 
@@ -32,7 +32,7 @@ export default function App() {
         facingMode: 'front',
       },
     },
-    callback(command: any) {
+    callback(command: any, data: any) {
       switch (command) {
         case 'pong':
           break;
@@ -42,9 +42,11 @@ export default function App() {
           break;
         case 'leaved':
           console.log('leaved!');
-          // setRemoteStream('');
           setIsPlaying(false);
           break;
+        case "newStreamAvailable": 
+          if(data.streamId == streamNameRef.current)
+            setRemoteStream(data.stream.toURL());
         default:
           console.log(command);
           break;
@@ -83,19 +85,6 @@ export default function App() {
       InCallManager.start({media: 'video'});
     }
   }, [localMedia, remoteMedia]);
-
-  useEffect(() => {
-    if (adaptor && Object.keys(adaptor.remoteStreams).length > 0) {
-      for (let i in adaptor.remoteStreams) {
-        let st =
-          adaptor.remoteStreams[i] && 'toURL' in adaptor.remoteStreams[i]
-            ? adaptor.remoteStreams[i].toURL()
-            : null;
-        setRemoteStream(st || '');
-        break;
-      }
-    }
-  }, [adaptor]);
 
   const handleJoin = useCallback(() => {
     if (!adaptor) {

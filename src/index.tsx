@@ -13,7 +13,6 @@ import {
   MediaStream,
   MediaStreamTrack,
   mediaDevices,
-  registerGlobals,
   RTCView,
 } from 'react-native-webrtc';
 
@@ -31,21 +30,17 @@ export interface RemoteStreams {
   [key: string]: MediaStream;
 }
 export interface Adaptor {
-  publish: (streamId: string, token?: string) => void;
-  play: (streamId: string, token?: string, room?: string) => void;
+  publish: (streamId: string, token?: string, subscriberId?:string , subscriberCode?: string, streamName?: string, mainTrack?:string, metaData?:string) => void;
+  play: (streamId: string, token?: string, room?: string , enableTracks?: MediaStream[],subscriberId?:string , subscriberCode?: string,  metaData?:string) => void;
   stop: (streamId: string) => void;
   join: (streamId: string) => void;
   leave: (streamId: string) => void;
-  joinRoom: (room: string, streamId?: string) => void;
-  leaveFromRoom: (room: string) => void;
   getRoomInfo: (room: string, streamId?: string) => void;
   initPeerConnection: (
     streamId: string,
     dataChannelMode: 'publish' | 'play' | 'peer'
   ) => Promise<void>;
   localStream: MutableRefObject<MediaStream | null>;
-  remoteStreams: RemoteStreams;
-  remoteStreamsMapped: RemoteStreams;
   peerMessage: (streamId: string, definition: any, data: any) => void;
   sendData: (streamId: string, message: string) => void;
 }
@@ -81,15 +76,10 @@ export function useAntMedia(params: Params) {
     debug,
     onlyDataChannel,
   } = params;
-  const [roomName, setRoomName] = useState('');
 
   const adaptorRef: any = useRef<null | Adaptor>(null);
 
   let localStream: any = useRef(null);
-  const [remoteStreams, setRemoteStreams] = useState<RemoteStreams>({});
-  const [remoteStreamsMapped, setRemoteStreamsMapped] = useState<RemoteStreams>(
-    {}
-  );
 
   const remotePeerConnection = useRef<RemotePeerConnection>({}).current;
   const remotePeerConnectionStats = useRef<RemotePeerConnectionStats>(
@@ -105,6 +95,8 @@ export function useAntMedia(params: Params) {
   
   var pingTimer: any = -1;
 
+  var idMapping = new Array();
+
   const closePeerConnection = useCallback(
     (streamId: string) => {
       if (debug) console.log('closePeerConnection');
@@ -114,33 +106,6 @@ export function useAntMedia(params: Params) {
         if (remotePeerConnection[streamId].dataChannel != null)
           // @ts-ignore
           remotePeerConnection[streamId].dataChannel.close();
-
-          setRemoteStreams((value) => {
-            var val = { ...value };
-            const receivers = remotePeerConnection[streamId].getReceivers();
-            // @ts-ignore
-            receivers.forEach((receiver) => {
-              const track = receiver.track;
-              if (track && localStream.current?.id !== track.id) {
-                  delete val[track.id];
-              }
-            });
-            delete val[streamId];
-            return val;
-          });
-
-          setRemoteStreamsMapped((value: any) => {
-            const val = { ...value };
-            const receivers = remotePeerConnection[streamId].getReceivers();
-            // @ts-ignore
-            receivers.forEach((receiver) => {
-              const track = receiver.track
-              if (track && localStream.current?.id !== track.id) {
-                delete val[streamId];
-              }
-            });
-            return val;
-          });
 
         if (remotePeerConnection[streamId].signalingState !== 'closed') {
           remotePeerConnection[streamId].close();
@@ -183,23 +148,19 @@ export function useAntMedia(params: Params) {
   );
 
   const onTrack = useCallback(
-    (event: any, streamId: string) => {
-      if (!remoteStreams[streamId]) {
-        setRemoteStreams((dt) => {
-          dt[streamId] = event.streams[0];
-          return dt;
-        });
+    (event: any, streamId: any) => {
         const dataObj = {
-          track: event.streams[0],
-          streamId,
-        };
-
+          stream: event.streams[0],
+          track: event.track,
+          streamId: streamId,
+          trackId: idMapping[streamId] != undefined? idMapping[streamId][event.transceiver.mid]:undefined,
+        }
         if (adaptorRef.current) {
           callback.call(adaptorRef.current, 'newStreamAvailable', dataObj);
+          callback.call(adaptorRef.current, 'newTrackAvailable', dataObj);
         }
-      }
     },
-    [callback, remoteStreams]
+    [callback]
   );
 
   const initDataChannel = useCallback((streamId: string, dataChannel: any) => {
@@ -252,8 +213,10 @@ export function useAntMedia(params: Params) {
         if (!playStreamIds.includes(streamId) && localStream.current) {
           // @ts-ignore
           localStream.current.getTracks().forEach((track) => {
-            localStream.current.getTracks().forEach((track: MediaStreamTrack) => { remotePeerConnection[streamId].addTrack(track, localStream.current); });
+            remotePeerConnection[streamId].addTrack(track, localStream.current);
+//            localStream.current.getTracks().forEach((track: MediaStreamTrack) => { remotePeerConnection[streamId].addTrack(track, localStream.current); });
           });
+
         }
 
         try {
@@ -266,32 +229,6 @@ export function useAntMedia(params: Params) {
           remotePeerConnection[streamId].ontrack = (event: any) => {
             if (debug) console.log('onTrack', event);
             onTrack(event, closedStreamId);
-            // @ts-ignore
-            setRemoteStreams((value) => {
-              const updatedRemoteStreams = { ...value };
-              const streams = event.streams;
-              // @ts-ignore
-              streams.forEach((stream) => {
-                if (localStream.current?.id !== stream.id) {
-                  updatedRemoteStreams[stream.id] = stream;
-                }
-              });
-
-              return updatedRemoteStreams;
-            });
-
-            setRemoteStreamsMapped((value) => {
-              const updatedRemoteStreamsMapped = { ...value };
-              const streams = event.streams;
-              // @ts-ignore
-              streams.forEach((stream) => {
-                if (localStream.current?.id !== stream.id) {
-                  updatedRemoteStreamsMapped[streamId] = stream;
-                }
-              });
-
-              return updatedRemoteStreamsMapped;
-            });
           };
 
           // @ts-ignore
@@ -391,12 +328,13 @@ export function useAntMedia(params: Params) {
   );
 
   const takeConfiguration = useCallback(
-    async (idOfStream: string, configuration: string, typeOfConfiguration: string) => {
-      const streamId = idOfStream;
+    async (streamId: any, configuration: string, typeOfConfiguration: string , idMap?:string) => {
       const type = typeOfConfiguration;
       var conf = configuration;
       conf = conf.replace("a=extmap:13 urn:3gpp:video-orientation\r\n", "");
       const isTypeOffer = type === 'offer';
+      idMapping[streamId] = idMap;
+
       if (debug) console.log('in takeConfiguration');
       let dataChannelMode: 'publish' | 'play' = 'publish';
       if (isTypeOffer) {
@@ -508,19 +446,17 @@ export function useAntMedia(params: Params) {
       // connection opened
 
       if (!onlyDataChannel) {
-        mediaDevices
-          .getUserMedia(mediaConstraints)
+        mediaDevices.getUserMedia(mediaConstraints)
           .then((stream: any) => {
             // Got stream!
             if (debug) console.log('got stream');
 
             localStream.current = stream;
-
             if (debug) console.log('in stream', localStream.current);
           })
           .catch((error: any) => {
             // Log error
-            if (debug) console.log('got error', error);
+            if (debug) console.log('got error', error , mediaConstraints);
           });
       } else {
         if (debug) console.log('only data channel');
@@ -543,7 +479,7 @@ export function useAntMedia(params: Params) {
           takeCandidate(data.streamId, data.label, data.candidate, data.id);
           break;
         case 'takeConfiguration':
-          takeConfiguration(data.streamId, data.sdp, data.type);
+          takeConfiguration(data.streamId, data.sdp, data.type,data.idMapping);
           break;
         case 'stop':
           if (debug) console.log(' in stop', data);
@@ -560,12 +496,6 @@ export function useAntMedia(params: Params) {
 
           if (adaptorRef.current)
             callback.call(adaptorRef.current, data.definition, data);
-          if (
-            data.definition === 'play_finished' ||
-            data.definition === 'publish_finished'
-          ) {
-            closePeerConnection(data.streamId);
-          }
           break;
         case 'roomInformation':
           if (debug) console.log(' in roomInformation', data);
@@ -626,7 +556,10 @@ export function useAntMedia(params: Params) {
       streamId: string,
       token?: string,
       subscriberId?: string,
-      subscriberCode?: string
+      subscriberCode?: string,
+      streamName?: string,
+      mainTrack?:string, 
+      metaData?:string
     ) => {
       let data = {} as any;
       if (onlyDataChannel) {
@@ -635,8 +568,7 @@ export function useAntMedia(params: Params) {
           streamId: streamId,
           token: token,
           subscriberId: typeof subscriberId !== undefined ? subscriberId : '',
-          subscriberCode:
-            typeof subscriberCode !== undefined ? subscriberCode : '',
+          subscriberCode: typeof subscriberCode !== undefined ? subscriberCode : '',
           video: false,
           audio: false,
         };
@@ -655,10 +587,12 @@ export function useAntMedia(params: Params) {
           streamId,
           token,
           subscriberId: typeof subscriberId !== undefined ? subscriberId : '',
-          subscriberCode:
-            typeof subscriberCode !== undefined ? subscriberCode : '',
+          subscriberCode: typeof subscriberCode !== undefined ? subscriberCode : '',
+          streamName,
+          mainTrack,
           video,
           audio,
+          metaData
         };
       }
 
@@ -669,13 +603,17 @@ export function useAntMedia(params: Params) {
 
   //play
   const play = useCallback(
-    (streamId: string, token?: string, room?: string) => {
+    (streamId: string, token?: string, room?: string , enableTracks?:MediaStreamTrack[],subscriberId?:string, subscriberCode?:string ,metaData?:string ) => {
       playStreamIds.push(streamId);
       const data = {
         command: 'play',
         streamId,
         token,
         room,
+        enableTracks,
+        subscriberId: typeof subscriberId !== undefined ? subscriberId : '',
+        subscriberCode: typeof subscriberCode !== undefined ? subscriberCode : '',
+        viewerInfo: typeof metaData !== undefined && metaData != null ? metaData : ""
       };
 
       if (token) {
@@ -689,6 +627,8 @@ export function useAntMedia(params: Params) {
 
   const stop = useCallback(
     (streamId: any) => {
+      closePeerConnection(streamId);
+      
       const data = {
         command: 'stop',
         streamId: streamId,
@@ -715,32 +655,6 @@ export function useAntMedia(params: Params) {
         command: 'leave',
         streamId,
       };
-      if (ws) ws.sendJson(data);
-    },
-    [ws]
-  );
-
-  const joinRoom = useCallback(
-    (room: string, streamId?: string) => {
-      const data = {
-        command: 'joinRoom',
-        room,
-        streamId,
-      };
-      setRoomName(room);
-
-      if (ws) ws.sendJson(data);
-    },
-    [ws]
-  );
-
-  const leaveFromRoom = useCallback(
-    (room: string) => {
-      const data = {
-        command: 'leaveFromRoom',
-        room,
-      };
-      setRoomName(room);
       if (ws) ws.sendJson(data);
     },
     [ws]
@@ -808,13 +722,9 @@ export function useAntMedia(params: Params) {
       stop,
       join,
       leave,
-      joinRoom,
-      leaveFromRoom,
       getRoomInfo,
       initPeerConnection,
       localStream,
-      remoteStreams,
-      remoteStreamsMapped,
       peerMessage,
       sendData,
     };
@@ -823,12 +733,8 @@ export function useAntMedia(params: Params) {
     play,
     stop,
     localStream,
-    remoteStreams,
-    remoteStreamsMapped,
     join,
     leave,
-    joinRoom,
-    leaveFromRoom,
     getRoomInfo,
     initPeerConnection,
     peerMessage,
@@ -840,12 +746,8 @@ export function useAntMedia(params: Params) {
     play,
     stop,
     localStream,
-    remoteStreams,
-    remoteStreamsMapped,
     join,
     leave,
-    joinRoom,
-    leaveFromRoom,
     getRoomInfo,
     initPeerConnection,
     peerMessage,
@@ -857,6 +759,11 @@ export function rtc_view(
   stream: any,
   customStyles: any = { width: '70%', height: '50%', alignSelf: 'center' }
 ) {
+  if(stream instanceof MediaStreamTrack ){
+    let mediaStream = new MediaStream(undefined);
+    mediaStream.addTrack(stream);
+    stream = mediaStream.toURL();
+  }
   const props = {
     streamURL: stream,
     style: customStyles,
