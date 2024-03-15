@@ -1,30 +1,27 @@
 name: "publish"
 
-on: 
-   push: 
-     branches: [ main ]
-   pull_request:
+on:
+   push:
      branches: [ main ]
 
-
-jobs: 
+jobs:
   publish:
      name: publishing
      runs-on: ubuntu-latest
 
      steps:
-        - name: checkout 
+        - name: checkout
           uses: actions/checkout@v3.0.2
-        - name: installation of node 
+        - name: installation of node
           uses: actions/setup-node@v3
-          with: 
+          with:
             node-version: 14
             registry-url: 'https://registry.npmjs.org'
-     
+
         - name: publish
           run: |
            npm install
            npm publish
           env:
-            NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} 
-        
+            NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
