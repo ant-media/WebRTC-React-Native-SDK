@@ -29,6 +29,7 @@ export interface Params {
 export interface RemoteStreams {
   [key: string]: MediaStream;
 }
+
 export interface Adaptor {
   publish: (streamId: string, token?: string, subscriberId?:string , subscriberCode?: string, streamName?: string, mainTrack?:string, metaData?:string) => void;
   play: (streamId: string, token?: string, room?: string , enableTracks?: MediaStream[],subscriberId?:string , subscriberCode?: string,  metaData?:string) => void;
@@ -43,6 +44,10 @@ export interface Adaptor {
   localStream: MutableRefObject<MediaStream | null>;
   peerMessage: (streamId: string, definition: any, data: any) => void;
   sendData: (streamId: string, message: string) => void;
+  muteLocalMic: () => void;
+  unmuteLocalMic: () => void;
+  muteRemoteMic: (streamId: string) => void;
+  unmuteRemoteMic: (streamId: string) => void;
 }
 export interface RemotePeerConnection {
   [key: string]: RTCPeerConnection;
@@ -659,6 +664,42 @@ export function useAntMedia(params: Params) {
     },
     [ws]
   );
+
+  const muteLocalMic = useCallback(() => {
+    if (localStream.current) {
+      // @ts-ignore
+      localStream.current.getAudioTracks().forEach((track) => {
+        track.enabled = false;
+      });
+    }
+  }, [localStream]);
+
+  const unmuteLocalMic = useCallback(() => {
+    if (localStream.current) {
+      // @ts-ignore
+      localStream.current.getAudioTracks().forEach((track) => {
+        track.enabled = true;
+      });
+    }
+  }, [localStream]);
+
+  const muteRemoteMic = useCallback((streamId: string) => {
+    if (remotePeerConnection[streamId]) {
+      // @ts-ignore
+      remotePeerConnection[streamId].getRemoteStreams()[0].getAudioTracks().forEach((track) => {
+        track.enabled = false;
+      });
+    }
+  }, []);
+
+  const unmuteRemoteMic = useCallback((streamId: string) => {
+    if (remotePeerConnection[streamId]) {
+      // @ts-ignore
+      remotePeerConnection[streamId].getRemoteStreams()[0].getAudioTracks().forEach((track) => {
+        track.enabled = true;
+      });
+    }
+  }, []);
 
   const getRoomInfo = useCallback(
     (room: string, streamId?: string) => {
