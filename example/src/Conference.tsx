@@ -16,7 +16,7 @@ var publishStreamId:string;
 
 export default function Conference() {
   var defaultRoomName = 'room1';
-  const webSocketUrl = 'wss://ovh36.antmedia.io:5443/WebRTCAppEE/websocket';
+  const webSocketUrl = 'wss://server.com:5080/WebRTCAppEE/websocket';
   //or webSocketUrl: 'wss://server.com:5443/WebRTCAppEE/websocket',
 
   const [localMedia, setLocalMedia] = useState('');
