@@ -46,6 +46,8 @@ export interface Adaptor {
   sendData: (streamId: string, message: string) => void;
   toggleLocalMic: () => void;
   toggleRemoteMic: (streamId: string, roomName: string|undefined) => void;
+  toggleLocalCamera: () => void;
+  toggleRemoteCamera: () => void;
 }
 export interface RemotePeerConnection {
   [key: string]: RTCPeerConnection;
@@ -95,7 +97,7 @@ export function useAntMedia(params: Params) {
   const config: any = peer_connection_config;
 
   const playStreamIds = useRef<string[]>([]).current;
-  
+
   var pingTimer: any = -1;
 
   var idMapping = new Array();
@@ -561,7 +563,7 @@ export function useAntMedia(params: Params) {
       subscriberId?: string,
       subscriberCode?: string,
       streamName?: string,
-      mainTrack?:string, 
+      mainTrack?:string,
       metaData?:string
     ) => {
       let data = {} as any;
@@ -631,7 +633,7 @@ export function useAntMedia(params: Params) {
   const stop = useCallback(
     (streamId: any) => {
       closePeerConnection(streamId);
-      
+
       const data = {
         command: 'stop',
         streamId: streamId,
@@ -674,7 +676,7 @@ export function useAntMedia(params: Params) {
 
   const toggleRemoteMic = useCallback((streamId: string, roomName: string|undefined) => {
     console.log("Muting remote mic")
-    // @ts-ignore 
+    // @ts-ignore
     if (typeof roomName != 'undefined' && remotePeerConnection[roomName]) {
       remotePeerConnection[roomName]._remoteStreams.forEach((stream) => {
         let audioTrackID = "ARDAMSa" + streamId;
@@ -748,6 +750,32 @@ export function useAntMedia(params: Params) {
     [ws]
   );
 
+  const toggleLocalCamera = useCallback(() => {
+    if (localStream.current) {
+      // @ts-ignore
+      localStream.current.getVideoTracks().forEach((track) => {
+        track.enabled = !track.enabled;
+      });
+    }
+  }, []);
+
+  const toggleRemoteCamera = useCallback(() => {
+    for (const streamId of playStreamIds) {
+      if (remotePeerConnection[streamId]) {
+        // @ts-ignore
+        remotePeerConnection[streamId].getSenders().forEach((sender: Sender) => {
+          if (sender.track.kind === 'video') {
+            const parameters = sender.getParameters();
+            if (parameters.encodings) {
+              parameters.encodings[0].active = !parameters.encodings[0].active;
+              sender.setParameters(parameters);
+            }
+          }
+        });
+      }
+    }
+  }, [playStreamIds, remotePeerConnection]);
+
   //adaptor ref
   useEffect(() => {
     adaptorRef.current = {
@@ -763,6 +791,8 @@ export function useAntMedia(params: Params) {
       sendData,
       toggleLocalMic,
       toggleRemoteMic,
+      toggleLocalCamera,
+      toggleRemoteCamera,
     };
   }, [
     publish,
@@ -777,6 +807,8 @@ export function useAntMedia(params: Params) {
     sendData,
     toggleLocalMic,
     toggleRemoteMic,
+    toggleLocalCamera,
+    toggleRemoteCamera,
   ]);
 
   return {
@@ -791,7 +823,9 @@ export function useAntMedia(params: Params) {
     peerMessage,
     sendData,
     toggleLocalMic,
-    toggleRemoteMic
+    toggleRemoteMic,
+    toggleLocalCamera,
+    toggleRemoteCamera,
   } as Adaptor;
 } // useAntmedia fn end
 

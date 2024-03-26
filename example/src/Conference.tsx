@@ -10,13 +10,14 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useAntMedia, rtc_view } from '@antmedia/react-native-ant-media';
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 import InCallManager from 'react-native-incall-manager';
 var publishStreamId:string;
 
 export default function Conference() {
   var defaultRoomName = 'room1';
-  const webSocketUrl = 'wss://server.com:5080/WebRTCAppEE/websocket';
+  const webSocketUrl = 'wss://ovh36.antmedia.io:5443/WebRTCAppEE/websocket';
   //or webSocketUrl: 'wss://server.com:5443/WebRTCAppEE/websocket',
 
   const [localMedia, setLocalMedia] = useState('');
@@ -24,6 +25,8 @@ export default function Conference() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [roomId, setRoomId] = useState(defaultRoomName);
   const [remoteTracks, setremoteTracks] = useState<any>([]);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(true);
 
 
   const adaptor = useAntMedia({
@@ -93,6 +96,20 @@ export default function Conference() {
     },
     debug: true,
   });
+
+  const handleMute = useCallback(() => {
+    if (adaptor) {
+      adaptor.toggleLocalAudio();
+      setIsMuted(!isMuted);
+    }
+  }, [adaptor, isMuted]);
+
+  const handleCamera = useCallback(() => {
+    if (adaptor) {
+      adaptor.toggleLocalCamera();
+      setIsCameraOpen(!isCameraOpen);
+    }
+  }, [adaptor, isCameraOpen]);
 
   const handleConnect = useCallback(() => {
     if (adaptor) {
@@ -167,7 +184,7 @@ export default function Conference() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.box}>
-        <Text style={styles.heading}>Ant Media WebRTC Multitrack Conference</Text>
+        <Text style={styles.heading}>Ant Media WebRTC Multi-track Conference</Text>
         <Text style={styles.heading}>Local Stream</Text>
         {localMedia ? <>{rtc_view(localMedia, styles.localPlayer)}</> : <></>}
         {!isPlaying ? (
@@ -178,6 +195,14 @@ export default function Conference() {
           </>
         ) : (
           <>
+              <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+                <TouchableOpacity onPress={handleMute} style={styles.roundButton}>
+                  <Icon name={isMuted ? 'microphone-slash' : 'microphone'} size={15} color="#000" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleCamera} style={styles.roundButton}>
+                  <Icon name={isCameraOpen ? 'video-camera' : 'video-slash'} size={15} color="#000" />
+                </TouchableOpacity>
+              </View>
             <Text style={styles.heading1}>Remote Streams</Text>
             {
               <ScrollView
@@ -196,9 +221,14 @@ export default function Conference() {
                     return (
                       <View key={index} style={trackObj.track.kind === 'audio' ? { display: 'none' } : {}}>
                         <>{rtc_view(trackObj.track, styles.players)}</>
-                        <TouchableOpacity style={styles.button} onPress={()=>{handleMuteUnmute(trackObj.track.id.substring("ARDAMSx".length))}}>
-                          <Text style={styles.btnTxt}>Mute/Unmute</Text>
-                        </TouchableOpacity>
+                        <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+                          <TouchableOpacity onPress={()=>{handleMuteUnmute(trackObj.track.id.substring("ARDAMSx".length))}} style={styles.roundButton}>
+                            <Icon name={isMuted ? 'microphone-slash' : 'microphone'} size={15} color="#000" />
+                          </TouchableOpacity>
+                          <TouchableOpacity onPress={handleCamera} style={styles.roundButton}>
+                            <Icon name={isCameraOpen ? 'video-camera' : 'video-slash'} size={15} color="#000" />
+                          </TouchableOpacity>
+                        </View>
                       </View>
                     );
                 })}
@@ -263,4 +293,15 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginTop: 20,
   },
+  roundButton: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#DDDDDD',
+      padding: 5,
+      borderRadius: 25, // This will make the button round
+      width: 30, // Diameter of the button
+      height: 30, // Diameter of the button
+      marginTop: 10,
+      marginHorizontal: 10,
+    },
 });
