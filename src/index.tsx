@@ -44,10 +44,8 @@ export interface Adaptor {
   localStream: MutableRefObject<MediaStream | null>;
   peerMessage: (streamId: string, definition: any, data: any) => void;
   sendData: (streamId: string, message: string) => void;
-  muteLocalMic: () => void;
-  unmuteLocalMic: () => void;
-  muteRemoteMic: (streamId: string) => void;
-  unmuteRemoteMic: (streamId: string) => void;
+  toggleLocalMic: () => void;
+  toggleRemoteMic: (streamId: string, roomName: string|undefined) => void;
 }
 export interface RemotePeerConnection {
   [key: string]: RTCPeerConnection;
@@ -665,38 +663,33 @@ export function useAntMedia(params: Params) {
     [ws]
   );
 
-  const muteLocalMic = useCallback(() => {
+  const toggleLocalMic = useCallback(() => {
     if (localStream.current) {
       // @ts-ignore
       localStream.current.getAudioTracks().forEach((track) => {
-        track.enabled = false;
+        track.enabled = !track.enabled;
       });
     }
   }, [localStream]);
 
-  const unmuteLocalMic = useCallback(() => {
-    if (localStream.current) {
-      // @ts-ignore
-      localStream.current.getAudioTracks().forEach((track) => {
-        track.enabled = true;
+  const toggleRemoteMic = useCallback((streamId: string, roomName: string|undefined) => {
+    console.log("Muting remote mic")
+    // @ts-ignore 
+    if (typeof roomName != 'undefined' && remotePeerConnection[roomName]) {
+      remotePeerConnection[roomName]._remoteStreams.forEach((stream) => {
+        let audioTrackID = "ARDAMSa" + streamId;
+        let track = stream.getTrackById(audioTrackID);
+        if (track) {
+          track.enabled = !track.enabled;
+        }
       });
-    }
-  }, [localStream]);
-
-  const muteRemoteMic = useCallback((streamId: string) => {
-    if (remotePeerConnection[streamId]) {
-      // @ts-ignore
-      remotePeerConnection[streamId].getRemoteStreams()[0].getAudioTracks().forEach((track) => {
-        track.enabled = false;
-      });
-    }
-  }, []);
-
-  const unmuteRemoteMic = useCallback((streamId: string) => {
-    if (remotePeerConnection[streamId]) {
-      // @ts-ignore
-      remotePeerConnection[streamId].getRemoteStreams()[0].getAudioTracks().forEach((track) => {
-        track.enabled = true;
+    } else if(remotePeerConnection[streamId]) {
+      remotePeerConnection[streamId]._remoteStreams.forEach((stream) => {
+        let audioTrackID = "ARDAMSa" + streamId;
+        let track = stream.getTrackById(audioTrackID);
+        if (track) {
+          track.enabled = !track.enabled;
+        }
       });
     }
   }, []);
@@ -768,6 +761,8 @@ export function useAntMedia(params: Params) {
       localStream,
       peerMessage,
       sendData,
+      toggleLocalMic,
+      toggleRemoteMic,
     };
   }, [
     publish,
@@ -780,6 +775,8 @@ export function useAntMedia(params: Params) {
     initPeerConnection,
     peerMessage,
     sendData,
+    toggleLocalMic,
+    toggleRemoteMic,
   ]);
 
   return {
@@ -793,6 +790,8 @@ export function useAntMedia(params: Params) {
     initPeerConnection,
     peerMessage,
     sendData,
+    toggleLocalMic,
+    toggleRemoteMic
   } as Adaptor;
 } // useAntmedia fn end
 

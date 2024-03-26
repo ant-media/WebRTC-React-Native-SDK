@@ -16,7 +16,7 @@ var publishStreamId:string;
 
 export default function Conference() {
   var defaultRoomName = 'room1';
-  const webSocketUrl = 'ws://server.com:5080/WebRTCAppEE/websocket';
+  const webSocketUrl = 'wss://ovh36.antmedia.io:5443/WebRTCAppEE/websocket';
   //or webSocketUrl: 'wss://server.com:5443/WebRTCAppEE/websocket',
 
   const [localMedia, setLocalMedia] = useState('');
@@ -111,6 +111,12 @@ export default function Conference() {
     }
   }, [adaptor, roomId]);
 
+  const handleMuteUnmute = useCallback((streamId) => {
+    if (adaptor) {
+      adaptor?.toggleRemoteMic(streamId, roomId);
+    }
+  }, [adaptor]);
+
   const removeRemoteVideo = (streamId?: string) => {
     if (streamId != null || streamId != undefined) {
       setremoteTracks(prevTracks => {
@@ -190,6 +196,9 @@ export default function Conference() {
                     return (
                       <View key={index} style={trackObj.track.kind === 'audio' ? { display: 'none' } : {}}>
                         <>{rtc_view(trackObj.track, styles.players)}</>
+                        <TouchableOpacity style={styles.button} onPress={()=>{handleMuteUnmute(trackObj.track.id.substring("ARDAMSx".length))}}>
+                          <Text style={styles.btnTxt}>Mute/Unmute</Text>
+                        </TouchableOpacity>
                       </View>
                     );
                 })}
