@@ -10,7 +10,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useAntMedia, rtc_view } from '@antmedia/react-native-ant-media';
-import Icon from 'react-native-vector-icons/FontAwesome';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 import InCallManager from 'react-native-incall-manager';
 var publishStreamId:string;
@@ -99,7 +99,7 @@ export default function Conference() {
 
   const handleMute = useCallback(() => {
     if (adaptor) {
-      adaptor.toggleLocalAudio();
+      adaptor.toggleLocalMic();
       setIsMuted(!isMuted);
     }
   }, [adaptor, isMuted]);
@@ -197,10 +197,10 @@ export default function Conference() {
           <>
               <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
                 <TouchableOpacity onPress={handleMute} style={styles.roundButton}>
-                  <Icon name={isMuted ? 'microphone-slash' : 'microphone'} size={15} color="#000" />
+                  <Icon name={isMuted ? 'mic-off-outline' : 'mic-outline'} size={15} color="#000" />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={handleCamera} style={styles.roundButton}>
-                  <Icon name={isCameraOpen ? 'video-camera' : 'video-slash'} size={15} color="#000" />
+                  <Icon name={isCameraOpen ? 'videocam-outline' : 'videocam-off-outline'} size={15} color="#000" />
                 </TouchableOpacity>
               </View>
             <Text style={styles.heading1}>Remote Streams</Text>

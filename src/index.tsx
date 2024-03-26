@@ -106,28 +106,27 @@ export function useAntMedia(params: Params) {
     (streamId: string) => {
       if (debug) console.log('closePeerConnection');
 
-      if (remotePeerConnection[streamId] != null) {
+      var peerConnection: RTCPeerConnection = remotePeerConnection[streamId];
+
+      if (peerConnection != null) {
+        delete remotePeerConnection[streamId];
+
         // @ts-ignore
-        if (remotePeerConnection[streamId].dataChannel != null)
+        if (peerConnection.dataChannel != null) {
           // @ts-ignore
-          remotePeerConnection[streamId].dataChannel.close();
+          peerConnection.dataChannel.close();
+        }
+        if (peerConnection.signalingState !== 'closed') {
+          peerConnection.close();
+        }
+        const playStreamIndex = playStreamIds.indexOf(streamId);
 
-        if (remotePeerConnection[streamId].signalingState !== 'closed') {
-          remotePeerConnection[streamId].close();
-          // @ts-ignore;
-          remotePeerConnection[streamId] = null;
-
-          delete remotePeerConnection[streamId];
-          const playStreamIndex = playStreamIds.indexOf(streamId);
-
-          if (playStreamIndex !== -1) {
-            playStreamIds.splice(playStreamIndex, 1);
-          }
+        if (playStreamIndex !== -1) {
+          playStreamIds.splice(playStreamIndex, 1);
         }
       }
 
       if (remotePeerConnectionStats[streamId] != null) {
-        // @ts-ignore
         clearInterval(remotePeerConnectionStats[streamId].timerId);
         delete remotePeerConnectionStats[streamId];
       }
