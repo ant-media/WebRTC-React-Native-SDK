@@ -232,10 +232,10 @@ export default function Conference() {
                             // @ts-ignore
                             handleMuteUnmute(trackObj.track.id.substring("ARDAMSx".length))
                             }} style={styles.roundButton}>
-                            <Icon name={isMuted ? 'microphone-slash' : 'microphone'} size={15} color="#000" />
+                            <Icon name={isMuted ? 'mic-off-outline' : 'mic-outline'} size={15} color="#000" />
                           </TouchableOpacity>
                           <TouchableOpacity onPress={handleCamera} style={styles.roundButton}>
-                            <Icon name={isCameraOpen ? 'video-camera' : 'video-slash'} size={15} color="#000" />
+                            <Icon name={isCameraOpen ? 'videocam-outline' : 'videocam-off-outline'} size={15} color="#000" />
                           </TouchableOpacity>
                         </View>
                       </View>
