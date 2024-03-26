@@ -842,5 +842,6 @@ export function rtc_view(
     style: customStyles,
   };
 
+  // @ts-ignore
   return <RTCView {...props} />;
 }

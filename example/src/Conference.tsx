@@ -64,12 +64,12 @@ export default function Conference() {
           }
           console.log("new track available with id ", incomingTrackId);
 
-          setremoteTracks(prevTracks => {
+          setremoteTracks((prevTracks: any) => {
             const updatedTracks = { ...prevTracks, [data.track.id]: data };
             return updatedTracks;
           });
 
-          data.stream.onremovetrack = (event) => {
+          data.stream.onremovetrack = (event: any) => {
             console.log("track is removed with id: " + event.track.id)
             removeRemoteVideo(event.track.id);
           }
@@ -128,7 +128,7 @@ export default function Conference() {
     }
   }, [adaptor, roomId]);
 
-  const handleMuteUnmute = useCallback((streamId) => {
+  const handleMuteUnmute = useCallback((streamId: string) => {
     if (adaptor) {
       adaptor?.toggleRemoteMic(streamId, roomId);
     }
@@ -136,7 +136,7 @@ export default function Conference() {
 
   const removeRemoteVideo = (streamId?: string) => {
     if (streamId != null || streamId != undefined) {
-      setremoteTracks(prevTracks => {
+      setremoteTracks((prevTracks: any) => {
         const updatedTracks = { ...prevTracks };
         if (updatedTracks[streamId]) {
           delete updatedTracks[streamId];
@@ -156,6 +156,7 @@ export default function Conference() {
     const verify = () => {
       if (adaptor.localStream.current && adaptor.localStream.current.toURL()) {
         let videoTrack = adaptor.localStream.current.getVideoTracks()[0];
+        // @ts-ignore
         return setLocalMedia(videoTrack);
       }
       setTimeout(verify, 5000);
@@ -216,13 +217,21 @@ export default function Conference() {
                 style={{ overflow: 'hidden' }}
               >
                 {Object.values(remoteTracks).map((trackObj, index) => {
+                  //@ts-ignore
                   console.log('index', index, trackObj.track.id);
                   if (trackObj)
                     return (
+                      // @ts-ignore
                       <View key={index} style={trackObj.track.kind === 'audio' ? { display: 'none' } : {}}>
-                        <>{rtc_view(trackObj.track, styles.players)}</>
+                        <>{
+                          // @ts-ignore
+                        rtc_view(trackObj.track, styles.players)
+                        }</>
                         <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
-                          <TouchableOpacity onPress={()=>{handleMuteUnmute(trackObj.track.id.substring("ARDAMSx".length))}} style={styles.roundButton}>
+                          <TouchableOpacity onPress={()=>{
+                            // @ts-ignore
+                            handleMuteUnmute(trackObj.track.id.substring("ARDAMSx".length))
+                            }} style={styles.roundButton}>
                             <Icon name={isMuted ? 'microphone-slash' : 'microphone'} size={15} color="#000" />
                           </TouchableOpacity>
                           <TouchableOpacity onPress={handleCamera} style={styles.roundButton}>
