@@ -11,8 +11,9 @@ import {
 } from 'react-native';
 import { useAntMedia, rtc_view } from '@antmedia/react-native-ant-media';
 import Icon from 'react-native-vector-icons/Ionicons';
-
+import { DeviceEventEmitter } from 'react-native';
 import InCallManager from 'react-native-incall-manager';
+
 var publishStreamId:string;
 
 export default function Conference() {
@@ -174,6 +175,9 @@ export default function Conference() {
   useEffect(() => {
     if (localMedia && remoteTracks) {
       InCallManager.start({ media: 'video' });
+      DeviceEventEmitter.addListener("onAudioDeviceChanged", (event) => {
+        console.log("onAudioDeviceChanged", event.availableAudioDeviceList);
+      });
     }
   }, [localMedia, remoteTracks]);
 

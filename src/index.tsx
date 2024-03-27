@@ -457,6 +457,8 @@ export function useAntMedia(params: Params) {
       callback.call(adaptorRef.current, 'initiated');
       // connection opened
 
+      getDevices();
+
       if (!onlyDataChannel) {
         mediaDevices.getUserMedia(mediaConstraints)
           .then((stream: any) => {
