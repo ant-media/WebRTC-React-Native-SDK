@@ -29,6 +29,7 @@ export interface Params {
 export interface RemoteStreams {
   [key: string]: MediaStream;
 }
+
 export interface Adaptor {
   publish: (streamId: string, token?: string, subscriberId?:string , subscriberCode?: string, streamName?: string, mainTrack?:string, metaData?:string) => void;
   play: (streamId: string, token?: string, room?: string , enableTracks?: MediaStream[],subscriberId?:string , subscriberCode?: string,  metaData?:string) => void;
@@ -43,6 +44,18 @@ export interface Adaptor {
   localStream: MutableRefObject<MediaStream | null>;
   peerMessage: (streamId: string, definition: any, data: any) => void;
   sendData: (streamId: string, message: string) => void;
+  muteLocalMic: () => void;
+  unmuteLocalMic: () => void;
+  setLocalMicVolume: (volume: number) => void;
+  setRemoteMicVolume: (volume: number, streamId: string, roomName: string|undefined) => void;
+  muteRemoteMic: (streamId: string, roomName: string|undefined) => void;
+  unmuteRemoteMic: (streamId: string, roomName: string|undefined) => void;
+  turnOffLocalCamera: () => void;
+  turnOnLocalCamera: () => void;
+  turnOffRemoteCamera: () => void;
+  turnOnRemoteCamera: () => void;
+  switchCamera: () => void;
+  getDevices: () => Promise<any>;
 }
 export interface RemotePeerConnection {
   [key: string]: RTCPeerConnection;
@@ -92,7 +105,7 @@ export function useAntMedia(params: Params) {
   const config: any = peer_connection_config;
 
   const playStreamIds = useRef<string[]>([]).current;
-  
+
   var pingTimer: any = -1;
 
   var idMapping = new Array();
@@ -101,28 +114,27 @@ export function useAntMedia(params: Params) {
     (streamId: string) => {
       if (debug) console.log('closePeerConnection');
 
-      if (remotePeerConnection[streamId] != null) {
+      var peerConnection: RTCPeerConnection = remotePeerConnection[streamId];
+
+      if (peerConnection != null) {
+        delete remotePeerConnection[streamId];
+
         // @ts-ignore
-        if (remotePeerConnection[streamId].dataChannel != null)
+        if (peerConnection.dataChannel != null) {
           // @ts-ignore
-          remotePeerConnection[streamId].dataChannel.close();
+          peerConnection.dataChannel.close();
+        }
+        if (peerConnection.signalingState !== 'closed') {
+          peerConnection.close();
+        }
+        const playStreamIndex = playStreamIds.indexOf(streamId);
 
-        if (remotePeerConnection[streamId].signalingState !== 'closed') {
-          remotePeerConnection[streamId].close();
-          // @ts-ignore;
-          remotePeerConnection[streamId] = null;
-
-          delete remotePeerConnection[streamId];
-          const playStreamIndex = playStreamIds.indexOf(streamId);
-
-          if (playStreamIndex !== -1) {
-            playStreamIds.splice(playStreamIndex, 1);
-          }
+        if (playStreamIndex !== -1) {
+          playStreamIds.splice(playStreamIndex, 1);
         }
       }
 
       if (remotePeerConnectionStats[streamId] != null) {
-        // @ts-ignore
         clearInterval(remotePeerConnectionStats[streamId].timerId);
         delete remotePeerConnectionStats[streamId];
       }
@@ -445,6 +457,8 @@ export function useAntMedia(params: Params) {
       callback.call(adaptorRef.current, 'initiated');
       // connection opened
 
+      getDevices();
+
       if (!onlyDataChannel) {
         mediaDevices.getUserMedia(mediaConstraints)
           .then((stream: any) => {
@@ -558,7 +572,7 @@ export function useAntMedia(params: Params) {
       subscriberId?: string,
       subscriberCode?: string,
       streamName?: string,
-      mainTrack?:string, 
+      mainTrack?:string,
       metaData?:string
     ) => {
       let data = {} as any;
@@ -628,7 +642,7 @@ export function useAntMedia(params: Params) {
   const stop = useCallback(
     (streamId: any) => {
       closePeerConnection(streamId);
-      
+
       const data = {
         command: 'stop',
         streamId: streamId,
@@ -659,6 +673,99 @@ export function useAntMedia(params: Params) {
     },
     [ws]
   );
+
+  const muteLocalMic = useCallback(() => {
+    if (localStream.current) {
+      // @ts-ignore
+      localStream.current.getAudioTracks().forEach((track) => {
+        track.enabled = false;
+      });
+    }
+  }, [localStream]);
+
+  const unmuteLocalMic = useCallback(() => {
+    if (localStream.current) {
+      // @ts-ignore
+      localStream.current.getAudioTracks().forEach((track) => {
+        track.enabled = true;
+      });
+    }
+  }, [localStream]);
+
+  const setLocalMicVolume = useCallback((volume: number) => {
+    if (localStream.current) {
+      // @ts-ignore
+      localStream.current.getAudioTracks().forEach((track) => {
+        track._setVolume(volume);
+      });
+    }
+  }, [localStream]);
+
+  const setRemoteMicVolume = useCallback((volume: number, streamId: string, roomName: string|undefined) => {
+    console.log("Setting remote mic")
+    // @ts-ignore
+    if (typeof roomName != 'undefined' && remotePeerConnection[roomName]) {
+      remotePeerConnection[roomName]._remoteStreams.forEach((stream) => {
+        let audioTrackID = "ARDAMSa" + streamId;
+        let track = stream.getTrackById(audioTrackID);
+        if (track) {
+          track._setVolume(volume);
+        }
+      });
+    } else if(remotePeerConnection[streamId]) {
+      remotePeerConnection[streamId]._remoteStreams.forEach((stream) => {
+        let audioTrackID = "ARDAMSa" + streamId;
+        let track = stream.getTrackById(audioTrackID);
+        if (track) {
+          track._setVolume(volume);
+        }
+      });
+    }
+  }, [remotePeerConnection]);
+
+  const muteRemoteMic = useCallback((streamId: string, roomName: string|undefined) => {
+    console.log("Muting remote mic")
+    // @ts-ignore
+    if (typeof roomName != 'undefined' && remotePeerConnection[roomName]) {
+      remotePeerConnection[roomName]._remoteStreams.forEach((stream) => {
+        let audioTrackID = "ARDAMSa" + streamId;
+        let track = stream.getTrackById(audioTrackID);
+        if (track) {
+          track.enabled = false;
+        }
+      });
+    } else if(remotePeerConnection[streamId]) {
+      remotePeerConnection[streamId]._remoteStreams.forEach((stream) => {
+        let audioTrackID = "ARDAMSa" + streamId;
+        let track = stream.getTrackById(audioTrackID);
+        if (track) {
+          track.enabled = false;
+        }
+      });
+    }
+  }, [remotePeerConnection]);
+
+  const unmuteRemoteMic = useCallback((streamId: string, roomName: string|undefined) => {
+    console.log("Muting remote mic")
+    // @ts-ignore
+    if (typeof roomName != 'undefined' && remotePeerConnection[roomName]) {
+      remotePeerConnection[roomName]._remoteStreams.forEach((stream) => {
+        let audioTrackID = "ARDAMSa" + streamId;
+        let track = stream.getTrackById(audioTrackID);
+        if (track) {
+          track.enabled = true;
+        }
+      });
+    } else if(remotePeerConnection[streamId]) {
+      remotePeerConnection[streamId]._remoteStreams.forEach((stream) => {
+        let audioTrackID = "ARDAMSa" + streamId;
+        let track = stream.getTrackById(audioTrackID);
+        if (track) {
+          track.enabled = true;
+        }
+      });
+    }
+  }, [remotePeerConnection]);
 
   const getRoomInfo = useCallback(
     (room: string, streamId?: string) => {
@@ -704,6 +811,30 @@ export function useAntMedia(params: Params) {
     [ws]
   );
 
+  const getDevices = useCallback( async () => {
+    var deviceArray = new Array();
+
+    try {
+      const devices = await mediaDevices.enumerateDevices();
+      // @ts-ignore
+      devices.map( device => {
+        deviceArray.push(device);
+      } );
+
+      callback.call(adaptorRef.current, 'available_devices', deviceArray);
+    } catch (err: any) {
+      console.log("Cannot get devices -> error: " + err);
+    }
+
+    mediaDevices.ondevicechange = async () => {
+      console.log("Device change event")
+      getDevices();
+    };
+
+    return deviceArray;
+
+  }, [callback]);
+
   const sendData = useCallback(
     (streamId: string, message: string) => {
       // @ts-ignore
@@ -713,6 +844,77 @@ export function useAntMedia(params: Params) {
     },
     [ws]
   );
+
+  const turnOffLocalCamera = useCallback(() => {
+    if (localStream.current) {
+      // @ts-ignore
+      localStream.current.getVideoTracks().forEach((track) => {
+        track.enabled = false;
+      });
+    }
+  }, []);
+
+  const turnOnLocalCamera = useCallback(() => {
+    if (localStream.current) {
+      // @ts-ignore
+      localStream.current.getVideoTracks().forEach((track) => {
+        track.enabled = true;
+      });
+    }
+  }, []);
+
+  const turnOffRemoteCamera = useCallback((streamId: string, roomName: string|undefined) => {
+    console.log("Turning off remote camera")
+    // @ts-ignore
+    if (typeof roomName != 'undefined' && remotePeerConnection[roomName]) {
+      remotePeerConnection[roomName]._remoteStreams.forEach((stream) => {
+        let videoTrackID = "ARDAMSv" + streamId;
+        let track = stream.getTrackById(videoTrackID);
+        if (track) {
+          track.enabled = false;
+        }
+      });
+    } else if(remotePeerConnection[streamId]) {
+      remotePeerConnection[streamId]._remoteStreams.forEach((stream) => {
+        let videoTrackID = "ARDAMSv" + streamId;
+        let track = stream.getTrackById(videoTrackID);
+        if (track) {
+          track.enabled = false;
+        }
+      });
+    }
+  }, [remotePeerConnection]);
+
+  const turnOnRemoteCamera = useCallback((streamId: string, roomName: string|undefined) => {
+    console.log("Turning on remote camera")
+    // @ts-ignore
+    if (typeof roomName != 'undefined' && remotePeerConnection[roomName]) {
+      remotePeerConnection[roomName]._remoteStreams.forEach((stream) => {
+        let videoTrackID = "ARDAMSv" + streamId;
+        let track = stream.getTrackById(videoTrackID);
+        if (track) {
+          track.enabled = true;
+        }
+      });
+    } else if(remotePeerConnection[streamId]) {
+      remotePeerConnection[streamId]._remoteStreams.forEach((stream) => {
+        let videoTrackID = "ARDAMSv" + streamId;
+        let track = stream.getTrackById(videoTrackID);
+        if (track) {
+          track.enabled = true;
+        }
+      });
+    }
+  }, [remotePeerConnection]);
+
+  const switchCamera = useCallback(() => {
+    if (localStream.current) {
+      // @ts-ignore
+      localStream.current.getVideoTracks().forEach((track) => {
+        track._switchCamera();
+      });
+    }
+  }, [localStream]);
 
   //adaptor ref
   useEffect(() => {
@@ -727,6 +929,18 @@ export function useAntMedia(params: Params) {
       localStream,
       peerMessage,
       sendData,
+      muteLocalMic,
+      unmuteLocalMic,
+      setLocalMicVolume,
+      setRemoteMicVolume,
+      muteRemoteMic,
+      unmuteRemoteMic,
+      turnOffLocalCamera,
+      turnOnLocalCamera,
+      turnOffRemoteCamera,
+      turnOnRemoteCamera,
+      switchCamera,
+      getDevices,
     };
   }, [
     publish,
@@ -739,6 +953,18 @@ export function useAntMedia(params: Params) {
     initPeerConnection,
     peerMessage,
     sendData,
+    muteLocalMic,
+    unmuteLocalMic,
+    setLocalMicVolume,
+    setRemoteMicVolume,
+    muteRemoteMic,
+    unmuteRemoteMic,
+    turnOffLocalCamera,
+    turnOnLocalCamera,
+    turnOffRemoteCamera,
+    turnOnRemoteCamera,
+    switchCamera,
+    getDevices,
   ]);
 
   return {
@@ -752,6 +978,18 @@ export function useAntMedia(params: Params) {
     initPeerConnection,
     peerMessage,
     sendData,
+    setLocalMicVolume,
+    setRemoteMicVolume,
+    muteLocalMic,
+    unmuteLocalMic,
+    muteRemoteMic,
+    unmuteRemoteMic,
+    turnOffLocalCamera,
+    turnOnLocalCamera,
+    turnOffRemoteCamera,
+    turnOnRemoteCamera,
+    switchCamera,
+    getDevices,
   } as Adaptor;
 } // useAntmedia fn end
 
@@ -769,5 +1007,6 @@ export function rtc_view(
     style: customStyles,
   };
 
+  // @ts-ignore
   return <RTCView {...props} />;
 }
