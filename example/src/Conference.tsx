@@ -106,7 +106,7 @@ export default function Conference() {
 
   const handleCamera = useCallback(() => {
     if (adaptor) {
-      adaptor.toggleLocalCamera();
+      (isCameraOpen) ? adaptor.turnOffLocalCamera() : adaptor.turnOnLocalCamera();
       setIsCameraOpen(!isCameraOpen);
     }
   }, [adaptor, isCameraOpen]);
@@ -128,11 +128,14 @@ export default function Conference() {
     }
   }, [adaptor, roomId]);
 
+  /*
   const handleRemoteMic = useCallback((streamId: string) => {
     if (adaptor) {
-      adaptor?.toggleRemoteMic(streamId, roomId);
+      adaptor?.muteRemoteMic(streamId, roomId);
+      adaptor?.unmuteRemoteMic(streamId, roomId);
     }
   }, [adaptor]);
+  */
 
   const removeRemoteVideo = (streamId?: string) => {
     if (streamId != null || streamId != undefined) {
