@@ -97,9 +97,9 @@ export default function Conference() {
     debug: true,
   });
 
-  const handleMute = useCallback(() => {
+  const handleMic = useCallback(() => {
     if (adaptor) {
-      adaptor.toggleLocalMic();
+      (isMuted) ? adaptor.unmuteLocalMic() : adaptor.muteLocalMic();
       setIsMuted(!isMuted);
     }
   }, [adaptor, isMuted]);
@@ -128,7 +128,7 @@ export default function Conference() {
     }
   }, [adaptor, roomId]);
 
-  const handleMuteUnmute = useCallback((streamId: string) => {
+  const handleRemoteMic = useCallback((streamId: string) => {
     if (adaptor) {
       adaptor?.toggleRemoteMic(streamId, roomId);
     }
@@ -197,7 +197,7 @@ export default function Conference() {
         ) : (
           <>
               <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
-                <TouchableOpacity onPress={handleMute} style={styles.roundButton}>
+                <TouchableOpacity onPress={handleMic} style={styles.roundButton}>
                   <Icon name={isMuted ? 'mic-off-outline' : 'mic-outline'} size={15} color="#000" />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={handleCamera} style={styles.roundButton}>
@@ -227,17 +227,16 @@ export default function Conference() {
                           // @ts-ignore
                         rtc_view(trackObj.track, styles.players)
                         }</>
+                        {/*
                         <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
                           <TouchableOpacity onPress={()=>{
                             // @ts-ignore
-                            handleMuteUnmute(trackObj.track.id.substring("ARDAMSx".length))
+                            handleRemoteMic(trackObj.track.id.substring("ARDAMSx".length))
                             }} style={styles.roundButton}>
-                            <Icon name={isMuted ? 'mic-off-outline' : 'mic-outline'} size={15} color="#000" />
-                          </TouchableOpacity>
-                          <TouchableOpacity onPress={handleCamera} style={styles.roundButton}>
-                            <Icon name={isCameraOpen ? 'videocam-outline' : 'videocam-off-outline'} size={15} color="#000" />
+                              <Icon name={trackObj.track.enabled ? 'mic-outline' : 'mic-off-outline'} size={15} color="#000" />
                           </TouchableOpacity>
                         </View>
+                        */}
                       </View>
                     );
                 })}
