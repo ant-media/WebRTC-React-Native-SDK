@@ -46,6 +46,8 @@ export interface Adaptor {
   sendData: (streamId: string, message: string) => void;
   muteLocalMic: () => void;
   unmuteLocalMic: () => void;
+  setLocalMicVolume: (volume: number) => void;
+  setRemoteMicVolume: (volume: number, streamId: string, roomName: string|undefined) => void;
   muteRemoteMic: (streamId: string, roomName: string|undefined) => void;
   unmuteRemoteMic: (streamId: string, roomName: string|undefined) => void;
   turnOffLocalCamera: () => void;
@@ -53,6 +55,7 @@ export interface Adaptor {
   turnOffRemoteCamera: () => void;
   turnOnRemoteCamera: () => void;
   switchCamera: () => void;
+  getDevices: () => Promise<any>;
 }
 export interface RemotePeerConnection {
   [key: string]: RTCPeerConnection;
@@ -687,6 +690,37 @@ export function useAntMedia(params: Params) {
     }
   }, [localStream]);
 
+  const setLocalMicVolume = useCallback((volume: number) => {
+    if (localStream.current) {
+      // @ts-ignore
+      localStream.current.getAudioTracks().forEach((track) => {
+        track._setVolume(volume);
+      });
+    }
+  }, [localStream]);
+
+  const setRemoteMicVolume = useCallback((volume: number, streamId: string, roomName: string|undefined) => {
+    console.log("Setting remote mic")
+    // @ts-ignore
+    if (typeof roomName != 'undefined' && remotePeerConnection[roomName]) {
+      remotePeerConnection[roomName]._remoteStreams.forEach((stream) => {
+        let audioTrackID = "ARDAMSa" + streamId;
+        let track = stream.getTrackById(audioTrackID);
+        if (track) {
+          track._setVolume(volume);
+        }
+      });
+    } else if(remotePeerConnection[streamId]) {
+      remotePeerConnection[streamId]._remoteStreams.forEach((stream) => {
+        let audioTrackID = "ARDAMSa" + streamId;
+        let track = stream.getTrackById(audioTrackID);
+        if (track) {
+          track._setVolume(volume);
+        }
+      });
+    }
+  }, [remotePeerConnection]);
+
   const muteRemoteMic = useCallback((streamId: string, roomName: string|undefined) => {
     console.log("Muting remote mic")
     // @ts-ignore
@@ -774,6 +808,30 @@ export function useAntMedia(params: Params) {
     },
     [ws]
   );
+
+  const getDevices = useCallback( async () => {
+    var deviceArray = new Array();
+
+    try {
+      const devices = await mediaDevices.enumerateDevices();
+      // @ts-ignore
+      devices.map( device => {
+        deviceArray.push(device);
+      } );
+
+      callback.call(adaptorRef.current, 'available_devices', deviceArray);
+    } catch (err: any) {
+      console.log("Cannot get devices -> error: " + err);
+    }
+
+    mediaDevices.ondevicechange = async () => {
+      console.log("Device change event")
+      getDevices();
+    };
+
+    return deviceArray;
+
+  }, [callback]);
 
   const sendData = useCallback(
     (streamId: string, message: string) => {
@@ -871,6 +929,8 @@ export function useAntMedia(params: Params) {
       sendData,
       muteLocalMic,
       unmuteLocalMic,
+      setLocalMicVolume,
+      setRemoteMicVolume,
       muteRemoteMic,
       unmuteRemoteMic,
       turnOffLocalCamera,
@@ -878,6 +938,7 @@ export function useAntMedia(params: Params) {
       turnOffRemoteCamera,
       turnOnRemoteCamera,
       switchCamera,
+      getDevices,
     };
   }, [
     publish,
@@ -892,6 +953,8 @@ export function useAntMedia(params: Params) {
     sendData,
     muteLocalMic,
     unmuteLocalMic,
+    setLocalMicVolume,
+    setRemoteMicVolume,
     muteRemoteMic,
     unmuteRemoteMic,
     turnOffLocalCamera,
@@ -899,6 +962,7 @@ export function useAntMedia(params: Params) {
     turnOffRemoteCamera,
     turnOnRemoteCamera,
     switchCamera,
+    getDevices,
   ]);
 
   return {
@@ -912,6 +976,8 @@ export function useAntMedia(params: Params) {
     initPeerConnection,
     peerMessage,
     sendData,
+    setLocalMicVolume,
+    setRemoteMicVolume,
     muteLocalMic,
     unmuteLocalMic,
     muteRemoteMic,
@@ -921,6 +987,7 @@ export function useAntMedia(params: Params) {
     turnOffRemoteCamera,
     turnOnRemoteCamera,
     switchCamera,
+    getDevices,
   } as Adaptor;
 } // useAntmedia fn end
 
