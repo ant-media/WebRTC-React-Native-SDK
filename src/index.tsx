@@ -44,10 +44,12 @@ export interface Adaptor {
   localStream: MutableRefObject<MediaStream | null>;
   peerMessage: (streamId: string, definition: any, data: any) => void;
   sendData: (streamId: string, message: string) => void;
-  toggleLocalMic: () => void;
+  muteLocalMic: () => void;
+  unmuteLocalMic: () => void;
   toggleRemoteMic: (streamId: string, roomName: string|undefined) => void;
   toggleLocalCamera: () => void;
   toggleRemoteCamera: () => void;
+  switchCamera: () => void;
 }
 export interface RemotePeerConnection {
   [key: string]: RTCPeerConnection;
@@ -664,11 +666,20 @@ export function useAntMedia(params: Params) {
     [ws]
   );
 
-  const toggleLocalMic = useCallback(() => {
+  const muteLocalMic = useCallback(() => {
     if (localStream.current) {
       // @ts-ignore
       localStream.current.getAudioTracks().forEach((track) => {
-        track.enabled = !track.enabled;
+        track.enabled = false;
+      });
+    }
+  }, [localStream]);
+
+  const unmuteLocalMic = useCallback(() => {
+    if (localStream.current) {
+      // @ts-ignore
+      localStream.current.getAudioTracks().forEach((track) => {
+        track.enabled = true;
       });
     }
   }, [localStream]);
@@ -775,6 +786,15 @@ export function useAntMedia(params: Params) {
     }
   }, [playStreamIds, remotePeerConnection]);
 
+  const switchCamera = useCallback(() => {
+    if (localStream.current) {
+      // @ts-ignore
+      localStream.current.getVideoTracks().forEach((track) => {
+        track._switchCamera();
+      });
+    }
+  }, [localStream]);
+
   //adaptor ref
   useEffect(() => {
     adaptorRef.current = {
@@ -788,10 +808,12 @@ export function useAntMedia(params: Params) {
       localStream,
       peerMessage,
       sendData,
-      toggleLocalMic,
+      muteLocalMic,
+      unmuteLocalMic,
       toggleRemoteMic,
       toggleLocalCamera,
       toggleRemoteCamera,
+      switchCamera,
     };
   }, [
     publish,
@@ -804,10 +826,12 @@ export function useAntMedia(params: Params) {
     initPeerConnection,
     peerMessage,
     sendData,
-    toggleLocalMic,
+    muteLocalMic,
+    unmuteLocalMic,
     toggleRemoteMic,
     toggleLocalCamera,
     toggleRemoteCamera,
+    switchCamera,
   ]);
 
   return {
@@ -821,10 +845,12 @@ export function useAntMedia(params: Params) {
     initPeerConnection,
     peerMessage,
     sendData,
-    toggleLocalMic,
+    muteLocalMic,
+    unmuteLocalMic,
     toggleRemoteMic,
     toggleLocalCamera,
     toggleRemoteCamera,
+    switchCamera,
   } as Adaptor;
 } // useAntmedia fn end
 
