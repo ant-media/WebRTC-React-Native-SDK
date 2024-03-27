@@ -56,24 +56,28 @@ export default function Conference() {
           console.log('play_finished');
           removeRemoteVideo();
           break;
-        case "newTrackAvailable": {
-          var incomingTrackId = data.track.id.substring("ARDAMSx".length);
+        case "newTrackAvailable": 
+          {
+            var incomingTrackId = data.track.id.substring("ARDAMSx".length);
 
-          if (incomingTrackId == roomId || incomingTrackId == publishStreamId) {
-            return;
+            if (incomingTrackId == roomId || incomingTrackId == publishStreamId) {
+              return;
+            }
+            console.log("new track available with id ", incomingTrackId);
+
+            setremoteTracks((prevTracks: any) => {
+              const updatedTracks = { ...prevTracks, [data.track.id]: data };
+              return updatedTracks;
+            });
+
+            data.stream.onremovetrack = (event: any) => {
+              console.log("track is removed with id: " + event.track.id)
+              removeRemoteVideo(event.track.id);
+            }
           }
-          console.log("new track available with id ", incomingTrackId);
-
-          setremoteTracks((prevTracks: any) => {
-            const updatedTracks = { ...prevTracks, [data.track.id]: data };
-            return updatedTracks;
-          });
-
-          data.stream.onremovetrack = (event: any) => {
-            console.log("track is removed with id: " + event.track.id)
-            removeRemoteVideo(event.track.id);
-          }
-        }
+          break;
+        case "available_devices":
+          console.log('available_devices', data);
           break;
         default:
           break;
