@@ -238,12 +238,10 @@ export function useAntMedia(params: Params) {
             iceCandidateReceived(event, closedStreamId);
           };
 
-          /*
           remotePeerConnection[streamId].ontrack = (event: any) => {
             if (debug) console.log('onTrack', event);
             onTrack(event, closedStreamId);
           };
-          */
 
           // @ts-ignore
           remotePeerConnection[streamId].ondatachannel = (event: RTCDataChannelEvent) => {
@@ -826,12 +824,10 @@ export function useAntMedia(params: Params) {
       console.log("Cannot get devices -> error: " + err);
     }
 
-    /*
     mediaDevices.ondevicechange = async () => {
       console.log("Device change event")
       getDevices();
     };
-    */
 
     return deviceArray;
 
