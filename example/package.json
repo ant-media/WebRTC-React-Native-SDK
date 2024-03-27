@@ -14,9 +14,9 @@
     "react": "17.0.2",
     "react-native": "0.68.2",
     "react-native-eject": "^0.2.0",
-    "react-native-incall-manager": "^4.2.0",
+    "react-native-incall-manager": "^4.0.0",
     "react-native-vector-icons": "^10.0.3",
-    "react-native-webrtc": "118.0.3"
+    "react-native-webrtc": "111.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.18.2",
