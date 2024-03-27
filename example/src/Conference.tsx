@@ -56,7 +56,7 @@ export default function Conference() {
           console.log('play_finished');
           removeRemoteVideo();
           break;
-        case "newTrackAvailable": 
+        case "newTrackAvailable":
           {
             var incomingTrackId = data.track.id.substring("ARDAMSx".length);
 
@@ -84,7 +84,7 @@ export default function Conference() {
       }
     },
     callbackError: (err: any, data: any) => {
-      if (err === "no_active_streams_in_room") {
+      if (err === "no_active_streams_in_room" || err === "no_stream_exists") {
         // it throws this error when there is no stream in the room
         // so we shouldn't reset streams list
       } else {
