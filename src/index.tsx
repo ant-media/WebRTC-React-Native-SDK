@@ -2,7 +2,6 @@ import React, {
   useCallback,
   useEffect,
   useRef,
-  useState,
   MutableRefObject,
 } from 'react';
 
