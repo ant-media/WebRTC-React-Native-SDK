@@ -18,7 +18,7 @@ var publishStreamId:string;
 
 export default function Conference() {
   var defaultRoomName = 'room1';
-  const webSocketUrl = 'wss://ovh36.antmedia.io:5443/WebRTCAppEE/websocket';
+  const webSocketUrl = 'ws://server.com:5080/WebRTCAppEE/websocket';
   //or webSocketUrl: 'wss://server.com:5443/WebRTCAppEE/websocket',
 
   const [localMedia, setLocalMedia] = useState('');
@@ -133,14 +133,14 @@ export default function Conference() {
     }
   }, [adaptor, roomId]);
 
-  /*
-  const handleRemoteMic = useCallback((streamId: string) => {
+/*
+  const handleRemoteAudio = useCallback((streamId: string) => {
     if (adaptor) {
-      adaptor?.muteRemoteMic(streamId, roomId);
-      adaptor?.unmuteRemoteMic(streamId, roomId);
+      adaptor?.muteRemoteAudio(streamId, roomId);
+      //adaptor?.unmuteRemoteAudio(streamId, roomId);
     }
   }, [adaptor]);
-  */
+*/
 
   const removeRemoteVideo = (streamId?: string) => {
     if (streamId != null || streamId != undefined) {
@@ -242,7 +242,7 @@ export default function Conference() {
                         <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
                           <TouchableOpacity onPress={()=>{
                             // @ts-ignore
-                            handleRemoteMic(trackObj.track.id.substring("ARDAMSx".length))
+                            handleRemoteAudio(trackObj.track.id.substring("ARDAMSx".length))
                             }} style={styles.roundButton}>
                               <Icon name={trackObj.track.enabled ? 'mic-outline' : 'mic-off-outline'} size={15} color="#000" />
                           </TouchableOpacity>

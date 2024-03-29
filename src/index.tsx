@@ -47,9 +47,9 @@ export interface Adaptor {
   muteLocalMic: () => void;
   unmuteLocalMic: () => void;
   setLocalMicVolume: (volume: number) => void;
-  setRemoteMicVolume: (volume: number, streamId: string, roomName: string|undefined) => void;
-  muteRemoteMic: (streamId: string, roomName: string|undefined) => void;
-  unmuteRemoteMic: (streamId: string, roomName: string|undefined) => void;
+  setRemoteAudioVolume: (volume: number, streamId: string, roomName: string|undefined) => void;
+  muteRemoteAudio: (streamId: string, roomName: string|undefined) => void;
+  unmuteRemoteAudio: (streamId: string, roomName: string|undefined) => void;
   turnOffLocalCamera: () => void;
   turnOnLocalCamera: () => void;
   turnOffRemoteCamera: () => void;
@@ -701,7 +701,7 @@ export function useAntMedia(params: Params) {
     }
   }, [localStream]);
 
-  const setRemoteMicVolume = useCallback((volume: number, streamId: string, roomName: string|undefined) => {
+  const setRemoteAudioVolume = useCallback((volume: number, streamId: string, roomName: string|undefined) => {
     console.log("Setting remote mic")
     // @ts-ignore
     if (typeof roomName != 'undefined' && remotePeerConnection[roomName]) {
@@ -723,7 +723,7 @@ export function useAntMedia(params: Params) {
     }
   }, [remotePeerConnection]);
 
-  const muteRemoteMic = useCallback((streamId: string, roomName: string|undefined) => {
+  const muteRemoteAudio = useCallback((streamId: string, roomName: string|undefined) => {
     console.log("Muting remote mic")
     // @ts-ignore
     if (typeof roomName != 'undefined' && remotePeerConnection[roomName]) {
@@ -745,7 +745,7 @@ export function useAntMedia(params: Params) {
     }
   }, [remotePeerConnection]);
 
-  const unmuteRemoteMic = useCallback((streamId: string, roomName: string|undefined) => {
+  const unmuteRemoteAudio = useCallback((streamId: string, roomName: string|undefined) => {
     console.log("Muting remote mic")
     // @ts-ignore
     if (typeof roomName != 'undefined' && remotePeerConnection[roomName]) {
@@ -932,9 +932,9 @@ export function useAntMedia(params: Params) {
       muteLocalMic,
       unmuteLocalMic,
       setLocalMicVolume,
-      setRemoteMicVolume,
-      muteRemoteMic,
-      unmuteRemoteMic,
+      setRemoteAudioVolume,
+      muteRemoteAudio,
+      unmuteRemoteAudio,
       turnOffLocalCamera,
       turnOnLocalCamera,
       turnOffRemoteCamera,
@@ -956,9 +956,9 @@ export function useAntMedia(params: Params) {
     muteLocalMic,
     unmuteLocalMic,
     setLocalMicVolume,
-    setRemoteMicVolume,
-    muteRemoteMic,
-    unmuteRemoteMic,
+    setRemoteAudioVolume,
+    muteRemoteAudio,
+    unmuteRemoteAudio,
     turnOffLocalCamera,
     turnOnLocalCamera,
     turnOffRemoteCamera,
@@ -979,11 +979,11 @@ export function useAntMedia(params: Params) {
     peerMessage,
     sendData,
     setLocalMicVolume,
-    setRemoteMicVolume,
+    setRemoteAudioVolume,
     muteLocalMic,
     unmuteLocalMic,
-    muteRemoteMic,
-    unmuteRemoteMic,
+    muteRemoteAudio,
+    unmuteRemoteAudio,
     turnOffLocalCamera,
     turnOnLocalCamera,
     turnOffRemoteCamera,
