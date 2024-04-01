@@ -10,8 +10,10 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useAntMedia, rtc_view } from '@antmedia/react-native-ant-media';
-
+import Icon from 'react-native-vector-icons/Ionicons';
+import { DeviceEventEmitter } from 'react-native';
 import InCallManager from 'react-native-incall-manager';
+
 var publishStreamId:string;
 
 export default function Conference() {
@@ -24,6 +26,8 @@ export default function Conference() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [roomId, setRoomId] = useState(defaultRoomName);
   const [remoteTracks, setremoteTracks] = useState<any>([]);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(true);
 
 
   const adaptor = useAntMedia({
@@ -53,31 +57,35 @@ export default function Conference() {
           console.log('play_finished');
           removeRemoteVideo();
           break;
-        case "newTrackAvailable": {
-          var incomingTrackId = data.track.id.substring("ARDAMSx".length);
+        case "newTrackAvailable":
+          {
+            var incomingTrackId = data.track.id.substring("ARDAMSx".length);
 
-          if (incomingTrackId == roomId || incomingTrackId == publishStreamId) {
-            return;
+            if (incomingTrackId == roomId || incomingTrackId == publishStreamId) {
+              return;
+            }
+            console.log("new track available with id ", incomingTrackId);
+
+            setremoteTracks((prevTracks: any) => {
+              const updatedTracks = { ...prevTracks, [data.track.id]: data };
+              return updatedTracks;
+            });
+
+            data.stream.onremovetrack = (event: any) => {
+              console.log("track is removed with id: " + event.track.id)
+              removeRemoteVideo(event.track.id);
+            }
           }
-          console.log("new track available with id ", incomingTrackId);
-
-          setremoteTracks(prevTracks => {
-            const updatedTracks = { ...prevTracks, [data.track.id]: data };
-            return updatedTracks;
-          });
-
-          data.stream.onremovetrack = (event) => {
-            console.log("track is removed with id: " + event.track.id)
-            removeRemoteVideo(event.track.id);
-          }
-        }
+          break;
+        case "available_devices":
+          console.log('available_devices', data);
           break;
         default:
           break;
       }
     },
     callbackError: (err: any, data: any) => {
-      if (err === "no_active_streams_in_room") {
+      if (err === "no_active_streams_in_room" || err === "no_stream_exists") {
         // it throws this error when there is no stream in the room
         // so we shouldn't reset streams list
       } else {
@@ -93,6 +101,20 @@ export default function Conference() {
     },
     debug: true,
   });
+
+  const handleMic = useCallback(() => {
+    if (adaptor) {
+      (isMuted) ? adaptor.unmuteLocalMic() : adaptor.muteLocalMic();
+      setIsMuted(!isMuted);
+    }
+  }, [adaptor, isMuted]);
+
+  const handleCamera = useCallback(() => {
+    if (adaptor) {
+      (isCameraOpen) ? adaptor.turnOffLocalCamera() : adaptor.turnOnLocalCamera();
+      setIsCameraOpen(!isCameraOpen);
+    }
+  }, [adaptor, isCameraOpen]);
 
   const handleConnect = useCallback(() => {
     if (adaptor) {
@@ -111,9 +133,18 @@ export default function Conference() {
     }
   }, [adaptor, roomId]);
 
+/*
+  const handleRemoteAudio = useCallback((streamId: string) => {
+    if (adaptor) {
+      adaptor?.muteRemoteAudio(streamId, roomId);
+      //adaptor?.unmuteRemoteAudio(streamId, roomId);
+    }
+  }, [adaptor]);
+*/
+
   const removeRemoteVideo = (streamId?: string) => {
     if (streamId != null || streamId != undefined) {
-      setremoteTracks(prevTracks => {
+      setremoteTracks((prevTracks: any) => {
         const updatedTracks = { ...prevTracks };
         if (updatedTracks[streamId]) {
           delete updatedTracks[streamId];
@@ -133,6 +164,7 @@ export default function Conference() {
     const verify = () => {
       if (adaptor.localStream.current && adaptor.localStream.current.toURL()) {
         let videoTrack = adaptor.localStream.current.getVideoTracks()[0];
+        // @ts-ignore
         return setLocalMedia(videoTrack);
       }
       setTimeout(verify, 5000);
@@ -143,6 +175,9 @@ export default function Conference() {
   useEffect(() => {
     if (localMedia && remoteTracks) {
       InCallManager.start({ media: 'video' });
+      DeviceEventEmitter.addListener("onAudioDeviceChanged", (event) => {
+        console.log("onAudioDeviceChanged", event.availableAudioDeviceList);
+      });
     }
   }, [localMedia, remoteTracks]);
 
@@ -161,7 +196,7 @@ export default function Conference() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.box}>
-        <Text style={styles.heading}>Ant Media WebRTC Multitrack Conference</Text>
+        <Text style={styles.heading}>Ant Media WebRTC Multi-track Conference</Text>
         <Text style={styles.heading}>Local Stream</Text>
         {localMedia ? <>{rtc_view(localMedia, styles.localPlayer)}</> : <></>}
         {!isPlaying ? (
@@ -172,6 +207,14 @@ export default function Conference() {
           </>
         ) : (
           <>
+              <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+                <TouchableOpacity onPress={handleMic} style={styles.roundButton}>
+                  <Icon name={isMuted ? 'mic-off-outline' : 'mic-outline'} size={15} color="#000" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleCamera} style={styles.roundButton}>
+                  <Icon name={isCameraOpen ? 'videocam-outline' : 'videocam-off-outline'} size={15} color="#000" />
+                </TouchableOpacity>
+              </View>
             <Text style={styles.heading1}>Remote Streams</Text>
             {
               <ScrollView
@@ -185,11 +228,26 @@ export default function Conference() {
                 style={{ overflow: 'hidden' }}
               >
                 {Object.values(remoteTracks).map((trackObj, index) => {
+                  //@ts-ignore
                   console.log('index', index, trackObj.track.id);
                   if (trackObj)
                     return (
+                      // @ts-ignore
                       <View key={index} style={trackObj.track.kind === 'audio' ? { display: 'none' } : {}}>
-                        <>{rtc_view(trackObj.track, styles.players)}</>
+                        <>{
+                          // @ts-ignore
+                        rtc_view(trackObj.track, styles.players)
+                        }</>
+                        {/*
+                        <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+                          <TouchableOpacity onPress={()=>{
+                            // @ts-ignore
+                            handleRemoteAudio(trackObj.track.id.substring("ARDAMSx".length))
+                            }} style={styles.roundButton}>
+                              <Icon name={trackObj.track.enabled ? 'mic-outline' : 'mic-off-outline'} size={15} color="#000" />
+                          </TouchableOpacity>
+                        </View>
+                        */}
                       </View>
                     );
                 })}
@@ -254,4 +312,15 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginTop: 20,
   },
+  roundButton: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#DDDDDD',
+      padding: 5,
+      borderRadius: 25, // This will make the button round
+      width: 30, // Diameter of the button
+      height: 30, // Diameter of the button
+      marginTop: 10,
+      marginHorizontal: 10,
+    },
 });
