@@ -113,7 +113,7 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <View style={styles.box}>
         <Text style={styles.heading}>Ant Media WebRTC Publish</Text>
-        {localMedia ? <>{rtc_view(localMedia, styles.streamPlayer)}</> : <></>}
+        {localMedia ? <>{rtc_view(localMedia, styles.streamPlayer, 'cover')}</> : <></>}
         {!isPlaying ? (
           <>
             <TouchableOpacity onPress={handlePublish} style={styles.button}>
