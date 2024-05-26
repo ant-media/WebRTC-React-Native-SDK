@@ -107,6 +107,24 @@ export function useAntMedia(params: Params) {
 
   var pingTimer: any = -1;
 
+  var lastReconnectiontionTrialTime = 0;
+
+  var publishStreamId = "";
+
+  var publishToken = "";
+  var publishSubscriberId = "";
+  var publishSubscriberCode = "";
+  var publishStreamName = "";
+  var publishMainTrack = "";
+  var publishMetaData = "";
+
+  var playToken = "";
+  var playRoomId = "";
+  var playEnableTracks: MediaStreamTrack[] = [];
+  var playSubscriberId = "";
+  var playSubscriberCode = "";
+  var playMetaData = "";
+
   var idMapping = new Array();
 
   const closePeerConnection = useCallback(
@@ -173,6 +191,90 @@ export function useAntMedia(params: Params) {
     },
     [callback]
   );
+
+  const iceConnectionState = useCallback((streamId) => {
+    try {
+      if (remotePeerConnection[streamId] != null) {
+        return remotePeerConnection[streamId].iceConnectionState;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }, [remotePeerConnection]);
+
+  const reconnectIfRequired = useCallback((delayMs: number = 3000) =>
+  {
+      //It's important to run the following methods after 3000 ms because the stream may be stopped by the user in the meantime
+      if (delayMs > 0)
+      {
+        setTimeout(() => {
+          tryAgain();
+        }, delayMs);
+      }
+      else {
+        tryAgain()
+      }
+  }, []);
+
+  const tryAgain = useCallback( () => {
+
+    const now = Date.now();
+    //to prevent too many trial from different paths
+    if(now - lastReconnectiontionTrialTime < 3000) {
+      return;
+    }
+    lastReconnectiontionTrialTime = now;
+
+    //reconnect publish
+    //if remotePeerConnection has a peer connection for the stream id, it means that it is not stopped on purpose
+
+    if (remotePeerConnection[publishStreamId] != null &&
+      //check connection status to not stop streaming an active stream
+      iceConnectionState(publishStreamId) != "checking" &&
+      iceConnectionState(publishStreamId) != "connected" &&
+      iceConnectionState(publishStreamId) != "completed")
+    {
+      // notify that reconnection process started for publish
+      if (adaptorRef.current) {
+        callback.call(adaptorRef.current, 'reconnection_attempt_for_publisher', publishStreamId);
+      }
+
+      stop(publishStreamId);
+      setTimeout(() => {
+        //publish about some time later because server may not drop the connection yet
+        //it may trigger already publishing error
+        console.log("Trying publish again for stream: " + publishStreamId);
+        publish(publishStreamId, publishToken, publishSubscriberId, publishSubscriberCode, publishStreamName, publishMainTrack, publishMetaData);
+      }, 500);
+    }
+
+    //reconnect play
+    for (var index in playStreamIds)
+    {
+      let streamId = playStreamIds[index];
+      if (remotePeerConnection[streamId] != null &&
+        //check connection status to not stop streaming an active stream
+        iceConnectionState(streamId) != "checking" &&
+        iceConnectionState(streamId) != "connected" &&
+        iceConnectionState(streamId) != "completed")
+      {
+        // notify that reconnection process started for play
+        if (adaptorRef.current) {
+          callback.call(adaptorRef.current, 'reconnection_attempt_for_player', publishStreamId);
+        }
+
+        console.log("It will try to play again for stream: " +  streamId  + " because it is not stopped on purpose")
+        stop(streamId);
+        setTimeout(() => {
+          //play about some time later because server may not drop the connection yet
+          //it may trigger already playing error
+          console.log("Trying play again for stream: " + streamId);
+          play(streamId, playToken, playRoomId, playEnableTracks, playSubscriberId, playSubscriberCode, playMetaData);
+        }, 500);
+      }
+    }
+  }, [callback]);
 
   const initDataChannel = useCallback((streamId: string, dataChannel: any) => {
     dataChannel.onerror = (error: any) => {
@@ -245,6 +347,25 @@ export function useAntMedia(params: Params) {
           // @ts-ignore
           remotePeerConnection[streamId].ondatachannel = (event: RTCDataChannelEvent) => {
             initDataChannel(streamId, event.channel);
+          };
+
+          // @ts-ignore
+          remotePeerConnection[streamId].oniceconnectionstatechange = (event: RTCPeerConnectionIceEvent) => {
+            if (debug) console.log('oniceconnectionstatechange', event);
+
+            if (!remotePeerConnection[streamId]) {
+              return
+            }
+
+            if (typeof remotePeerConnection[streamId].iceConnectionState === 'undefined') {
+              reconnectIfRequired(3000);
+              return
+            }
+
+            console.warn("ICE connection state changed to " + remotePeerConnection[streamId].iceConnectionState)
+            var obj = {state: remotePeerConnection[streamId].iceConnectionState, streamId: streamId};
+            if (obj.state == "failed" || obj.state == "disconnected" || obj.state == "closed") reconnectIfRequired(3000);
+            if (callback && adaptorRef.current) callback.call(adaptorRef.current, 'ice_connection_state_changed', obj);
           };
 
           if (dataChannelMode === 'publish') {
@@ -574,6 +695,14 @@ export function useAntMedia(params: Params) {
       mainTrack?:string,
       metaData?:string
     ) => {
+      publishStreamId = streamId;
+      publishToken = token ? token : '';
+      publishSubscriberId = subscriberId ? subscriberId : '';
+      publishSubscriberCode = subscriberCode ? subscriberCode : '';
+      publishStreamName =  streamName ? streamName : '';
+      publishMainTrack = mainTrack ? mainTrack : '';
+      publishMetaData = metaData ? metaData : '';
+
       let data = {} as any;
       if (onlyDataChannel) {
         data = {
@@ -617,6 +746,15 @@ export function useAntMedia(params: Params) {
   //play
   const play = useCallback(
     (streamId: string, token?: string, room?: string , enableTracks?:MediaStreamTrack[],subscriberId?:string, subscriberCode?:string ,metaData?:string ) => {
+      if (playStreamIds.includes(streamId)) return;
+
+      playToken = token ? token : '';
+      playRoomId = room ? room : '';
+      playEnableTracks = enableTracks ? enableTracks : [];
+      playSubscriberId = subscriberId ? subscriberId : "";
+      playSubscriberCode = subscriberCode ? subscriberCode : "";
+      playMetaData = metaData ? metaData : "";
+
       playStreamIds.push(streamId);
       const data = {
         command: 'play',
@@ -669,6 +807,7 @@ export function useAntMedia(params: Params) {
         streamId,
       };
       if (ws) ws.sendJson(data);
+      closePeerConnection(streamId);
     },
     [ws]
   );
