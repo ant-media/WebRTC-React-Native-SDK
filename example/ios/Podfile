@@ -1,7 +1,10 @@
 require_relative '../node_modules/react-native/scripts/react_native_pods'
+
+project 'ReactNativeAntMediaExample.xcodeproj'
+
 require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
 
-platform :ios, '11.0'
+platform :ios, '16.0'
 install! 'cocoapods', :deterministic_uuids => false
 
 target 'ReactNativeAntMediaExample' do
