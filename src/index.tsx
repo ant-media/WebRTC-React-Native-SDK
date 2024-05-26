@@ -125,6 +125,8 @@ export function useAntMedia(params: Params) {
   var playSubscriberCode = "";
   var playMetaData = "";
 
+  var iceRestart = false;
+
   var idMapping = new Array();
 
   const closePeerConnection = useCallback(
@@ -144,11 +146,12 @@ export function useAntMedia(params: Params) {
         if (peerConnection.signalingState !== 'closed') {
           peerConnection.close();
         }
-        const playStreamIndex = playStreamIds.indexOf(streamId);
+      }
 
-        if (playStreamIndex !== -1) {
-          playStreamIds.splice(playStreamIndex, 1);
-        }
+      const playStreamIndex = playStreamIds.indexOf(streamId);
+
+      if (playStreamIndex !== -1) {
+        playStreamIds.splice(playStreamIndex, 1);
       }
 
       if (remotePeerConnectionStats[streamId] != null) {
@@ -350,6 +353,13 @@ export function useAntMedia(params: Params) {
           };
 
           // @ts-ignore
+          remotePeerConnection[streamId].onnegotiationneeded = async (event: any) => {
+            if (debug) console.log('onnegotiationneeded');
+            await remotePeerConnection[streamId].setLocalDescription(await remotePeerConnection[streamId].createOffer({iceRestart: iceRestart}));
+            ws.send({desc: remotePeerConnection[streamId].localDescription});
+          }
+
+          // @ts-ignore
           remotePeerConnection[streamId].oniceconnectionstatechange = (event: RTCPeerConnectionIceEvent) => {
             if (debug) console.log('oniceconnectionstatechange', event);
 
@@ -364,7 +374,9 @@ export function useAntMedia(params: Params) {
 
             console.warn("ICE connection state changed to " + remotePeerConnection[streamId].iceConnectionState)
             var obj = {state: remotePeerConnection[streamId].iceConnectionState, streamId: streamId};
-            if (obj.state == "failed" || obj.state == "disconnected" || obj.state == "closed") reconnectIfRequired(3000);
+            if (obj.state == "connected") { iceRestart = false; }
+            if (obj.state == "failed") { iceRestart = true; remotePeerConnection[streamId].restartIce(); }
+            if (obj.state == "disconnected" || obj.state == "closed") reconnectIfRequired(3000);
             if (callback && adaptorRef.current) callback.call(adaptorRef.current, 'ice_connection_state_changed', obj);
           };
 
