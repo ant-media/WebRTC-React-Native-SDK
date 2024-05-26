@@ -5,7 +5,7 @@ import {
   View,
   SafeAreaView,
   TouchableOpacity,
-  Text,
+  Text, ActivityIndicator,
 } from 'react-native';
 import {useAntMedia, rtc_view} from '@antmedia/react-native-ant-media';
 
@@ -17,6 +17,7 @@ export default function App() {
   const streamNameRef = useRef<string>(defaultStreamName);
   const [remoteMedia, setRemoteStream] = useState<string>('');
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
 
   const adaptor = useAntMedia({
     url: webSocketUrl,
@@ -36,17 +37,18 @@ export default function App() {
         case 'play_started':
           console.log('play_started');
           setIsPlaying(true);
+          setIsReconnecting(false);
           break;
         case 'play_finished':
           console.log('play_finished');
-          
-          setIsPlaying(false);
-          setRemoteStream('');
-        break;
-        case "newStreamAvailable": 
+          break;
+        case "newStreamAvailable":
         if(data.streamId == streamNameRef.current)
           setRemoteStream(data.stream.toURL());
-        break;
+          break;
+        case "reconnection_attempt_for_player":
+          setIsReconnecting(true);
+          break;
         default:
           console.log(command);
           break;
@@ -80,6 +82,8 @@ export default function App() {
       return;
     }
     adaptor.stop(streamNameRef.current);
+    setIsPlaying(false);
+    setRemoteStream('');
   }, [adaptor]);
 
   return (
@@ -94,11 +98,18 @@ export default function App() {
           </>
         ) : (
           <>
-            {remoteMedia ? (
+            {(remoteMedia && isReconnecting) ? (
+              <>{
+                <View style={{alignItems: 'center'}}>
+                  <ActivityIndicator size="large" color="#0000ff" />
+                  <Text>Reconnecting..</Text>
+                </View>
+              }</>
+            ) : (remoteMedia ? (
               <>{rtc_view(remoteMedia, styles.streamPlayer)}</>
             ) : (
               <></>
-            )}
+            ))}
             <TouchableOpacity onPress={handleStop} style={styles.button}>
               <Text>Stop Playing</Text>
             </TouchableOpacity>
