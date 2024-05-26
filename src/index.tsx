@@ -35,6 +35,7 @@ export interface Adaptor {
   stop: (streamId: string) => void;
   join: (streamId: string) => void;
   leave: (streamId: string) => void;
+  requestVideoTrackAssignments: (streamId: string) => void;
   getRoomInfo: (room: string, streamId?: string) => void;
   initPeerConnection: (
     streamId: string,
@@ -824,6 +825,17 @@ export function useAntMedia(params: Params) {
     [ws]
   );
 
+  const requestVideoTrackAssignments = useCallback(
+    (streamId: string) => {
+      const data = {
+        command: 'getVideoTrackAssignmentsCommand',
+        streamId,
+      };
+      if (ws) ws.sendJson(data);
+    },
+    [ws]
+  );
+
   const muteLocalMic = useCallback(() => {
     if (localStream.current) {
       // @ts-ignore
@@ -1074,6 +1086,7 @@ export function useAntMedia(params: Params) {
       stop,
       join,
       leave,
+      requestVideoTrackAssignments,
       getRoomInfo,
       initPeerConnection,
       localStream,
@@ -1099,6 +1112,7 @@ export function useAntMedia(params: Params) {
     localStream,
     join,
     leave,
+    requestVideoTrackAssignments,
     getRoomInfo,
     initPeerConnection,
     peerMessage,
@@ -1124,6 +1138,7 @@ export function useAntMedia(params: Params) {
     localStream,
     join,
     leave,
+    requestVideoTrackAssignments,
     getRoomInfo,
     initPeerConnection,
     peerMessage,
