@@ -20,7 +20,6 @@ export default function App() {
   const [localMedia, setLocalMedia] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
 
-
   let localStream: any = useRef(null);
 
   useEffect(() => {
@@ -50,6 +49,18 @@ export default function App() {
           console.log('publish_finished');
           InCallManager.stop();
           setIsPlaying(false);
+          adaptor.closeWebSocket();
+          break;
+        case 'local_stream_updated':
+          console.log('local_stream_updated');
+          verify();
+          break;
+        case 'websocket_not_initialized':
+          adaptor.initialiseWebSocket();
+          break;
+        case 'websocket_closed':
+          console.log('websocket_closed');
+          adaptor.stopLocalStream();
           break;
         default:
           console.log(command);
@@ -69,22 +80,16 @@ export default function App() {
     debug: true,
   });
 
+  const verify = () => {
+    console.log('in verify');
+    if (adaptor.localStream.current && adaptor.localStream.current.toURL()) {
+      console.log('in verify if adaptor local stream', adaptor.localStream);
+      return setLocalMedia(adaptor.localStream.current.toURL());
+    }
+    setTimeout(verify, 5000);
+  };
+
   useEffect(() => {
-    const verify = () => {
-      console.log('in verify');
-
-      if (adaptor.localStream.current && adaptor.localStream.current.toURL()) {
-        console.log('in verify if adaptor local stream', adaptor.localStream);
-
-        console.log(
-          'localStream.current.toURL()',
-          adaptor.localStream.current.toURL(),
-        );
-
-        return setLocalMedia(adaptor.localStream.current.toURL());
-      }
-      setTimeout(verify, 5000);
-    };
     verify();
   }, [adaptor.localStream]);
 
