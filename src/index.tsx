@@ -30,9 +30,12 @@ export interface RemoteStreams {
 }
 
 export interface Adaptor {
-  publish: (streamId: string, token?: string, subscriberId?:string , subscriberCode?: string, streamName?: string, mainTrack?:string, metaData?:string) => void;
-  play: (streamId: string, token?: string, room?: string , enableTracks?: MediaStream[],subscriberId?:string , subscriberCode?: string,  metaData?:string) => void;
+  publish: (streamId: string, token?: string, subscriberId?: string, subscriberCode?: string, streamName?: string, mainTrack?: string, metaData?: string) => void;
+  play: (streamId: string, token?: string, room?: string, enableTracks?: MediaStream[], subscriberId?: string, subscriberCode?: string, metaData?: string) => void;
   stop: (streamId: string) => void;
+  stopLocalStream: () => void;
+  initialiseWebSocket: () => void;
+  closeWebSocket: () => void;
   join: (streamId: string) => void;
   leave: (streamId: string) => void;
   requestVideoTrackAssignments: (streamId: string) => void;
@@ -47,9 +50,9 @@ export interface Adaptor {
   muteLocalMic: () => void;
   unmuteLocalMic: () => void;
   setLocalMicVolume: (volume: number) => void;
-  setRemoteAudioVolume: (volume: number, streamId: string, roomName: string|undefined) => void;
-  muteRemoteAudio: (streamId: string, roomName: string|undefined) => void;
-  unmuteRemoteAudio: (streamId: string, roomName: string|undefined) => void;
+  setRemoteAudioVolume: (volume: number, streamId: string, roomName: string | undefined) => void;
+  muteRemoteAudio: (streamId: string, roomName: string | undefined) => void;
+  unmuteRemoteAudio: (streamId: string, roomName: string | undefined) => void;
   turnOffLocalCamera: () => void;
   turnOnLocalCamera: () => void;
   turnOffRemoteCamera: () => void;
@@ -91,6 +94,10 @@ export function useAntMedia(params: Params) {
   } = params;
 
   const adaptorRef: any = useRef<null | Adaptor>(null);
+
+  const wsRef: any = useRef<null | WebSocket>(new WebSocket(url));
+
+  var ws = wsRef.current;
 
   let localStream: any = useRef(null);
 
@@ -159,6 +166,7 @@ export function useAntMedia(params: Params) {
         clearInterval(remotePeerConnectionStats[streamId].timerId);
         delete remotePeerConnectionStats[streamId];
       }
+      clearPingTimer();
     },
     [playStreamIds, remotePeerConnection, remotePeerConnectionStats]
   );
@@ -182,16 +190,16 @@ export function useAntMedia(params: Params) {
 
   const onTrack = useCallback(
     (event: any, streamId: any) => {
-        const dataObj = {
-          stream: event.streams[0],
-          track: event.track,
-          streamId: streamId,
-          trackId: idMapping[streamId] != undefined? idMapping[streamId][event.transceiver.mid]:undefined,
-        }
-        if (adaptorRef.current) {
-          callback.call(adaptorRef.current, 'newStreamAvailable', dataObj);
-          callback.call(adaptorRef.current, 'newTrackAvailable', dataObj);
-        }
+      const dataObj = {
+        stream: event.streams[0],
+        track: event.track,
+        streamId: streamId,
+        trackId: idMapping[streamId] != undefined ? idMapping[streamId][event.transceiver.mid] : undefined,
+      }
+      if (adaptorRef.current) {
+        callback.call(adaptorRef.current, 'newStreamAvailable', dataObj);
+        callback.call(adaptorRef.current, 'newTrackAvailable', dataObj);
+      }
     },
     [callback]
   );
@@ -207,25 +215,23 @@ export function useAntMedia(params: Params) {
     }
   }, [remotePeerConnection]);
 
-  const reconnectIfRequired = useCallback((delayMs: number = 3000) =>
-  {
-      //It's important to run the following methods after 3000 ms because the stream may be stopped by the user in the meantime
-      if (delayMs > 0)
-      {
-        setTimeout(() => {
-          tryAgain();
-        }, delayMs);
-      }
-      else {
-        tryAgain()
-      }
+  const reconnectIfRequired = useCallback((delayMs: number = 3000) => {
+    //It's important to run the following methods after 3000 ms because the stream may be stopped by the user in the meantime
+    if (delayMs > 0) {
+      setTimeout(() => {
+        tryAgain();
+      }, delayMs);
+    }
+    else {
+      tryAgain()
+    }
   }, []);
 
-  const tryAgain = useCallback( () => {
+  const tryAgain = useCallback(() => {
 
     const now = Date.now();
     //to prevent too many trial from different paths
-    if(now - lastReconnectiontionTrialTime < 3000) {
+    if (now - lastReconnectiontionTrialTime < 3000) {
       return;
     }
     lastReconnectiontionTrialTime = now;
@@ -237,8 +243,7 @@ export function useAntMedia(params: Params) {
       //check connection status to not stop streaming an active stream
       iceConnectionState(publishStreamId) != "checking" &&
       iceConnectionState(publishStreamId) != "connected" &&
-      iceConnectionState(publishStreamId) != "completed")
-    {
+      iceConnectionState(publishStreamId) != "completed") {
       // notify that reconnection process started for publish
       if (adaptorRef.current) {
         callback.call(adaptorRef.current, 'reconnection_attempt_for_publisher', publishStreamId);
@@ -254,21 +259,19 @@ export function useAntMedia(params: Params) {
     }
 
     //reconnect play
-    for (var index in playStreamIds)
-    {
+    for (var index in playStreamIds) {
       let streamId = playStreamIds[index];
       if (remotePeerConnection[streamId] != null &&
         //check connection status to not stop streaming an active stream
         iceConnectionState(streamId) != "checking" &&
         iceConnectionState(streamId) != "connected" &&
-        iceConnectionState(streamId) != "completed")
-      {
+        iceConnectionState(streamId) != "completed") {
         // notify that reconnection process started for play
         if (adaptorRef.current) {
           callback.call(adaptorRef.current, 'reconnection_attempt_for_player', publishStreamId);
         }
 
-        console.log("It will try to play again for stream: " +  streamId  + " because it is not stopped on purpose")
+        console.log("It will try to play again for stream: " + streamId + " because it is not stopped on purpose")
         stop(streamId);
         setTimeout(() => {
           //play about some time later because server may not drop the connection yet
@@ -331,7 +334,7 @@ export function useAntMedia(params: Params) {
           // @ts-ignore
           localStream.current.getTracks().forEach((track) => {
             remotePeerConnection[streamId].addTrack(track, localStream.current);
-//            localStream.current.getTracks().forEach((track: MediaStreamTrack) => { remotePeerConnection[streamId].addTrack(track, localStream.current); });
+            //            localStream.current.getTracks().forEach((track: MediaStreamTrack) => { remotePeerConnection[streamId].addTrack(track, localStream.current); });
           });
 
         }
@@ -356,8 +359,8 @@ export function useAntMedia(params: Params) {
           // @ts-ignore
           remotePeerConnection[streamId].onnegotiationneeded = async (event: any) => {
             if (debug) console.log('onnegotiationneeded');
-            await remotePeerConnection[streamId].setLocalDescription(await remotePeerConnection[streamId].createOffer({iceRestart: iceRestart}));
-            ws.send({desc: remotePeerConnection[streamId].localDescription});
+            await remotePeerConnection[streamId].setLocalDescription(await remotePeerConnection[streamId].createOffer({ iceRestart: iceRestart }));
+            ws.send({ desc: remotePeerConnection[streamId].localDescription });
           }
 
           // @ts-ignore
@@ -374,7 +377,7 @@ export function useAntMedia(params: Params) {
             }
 
             console.warn("ICE connection state changed to " + remotePeerConnection[streamId].iceConnectionState)
-            var obj = {state: remotePeerConnection[streamId].iceConnectionState, streamId: streamId};
+            var obj = { state: remotePeerConnection[streamId].iceConnectionState, streamId: streamId };
             if (obj.state == "connected") { iceRestart = false; }
             if (obj.state == "failed") { iceRestart = true; remotePeerConnection[streamId].restartIce(); }
             if (obj.state == "disconnected" || obj.state == "closed") reconnectIfRequired(3000);
@@ -467,13 +470,13 @@ export function useAntMedia(params: Params) {
         if (debug) console.debug(`addIceCandidate ${streamId}`);
         if (debug) console.debug('candidate', candidate);
         await remotePeerConnection[streamId].addIceCandidate(candidate);
-      } catch (err) {}
+      } catch (err) { }
     },
     [debug, remotePeerConnection]
   );
 
   const takeConfiguration = useCallback(
-    async (streamId: any, configuration: string, typeOfConfiguration: string , idMap?:string) => {
+    async (streamId: any, configuration: string, typeOfConfiguration: string, idMap?: string) => {
       const type = typeOfConfiguration;
       var conf = configuration;
       conf = conf.replace("a=extmap:13 urn:3gpp:video-orientation\r\n", "");
@@ -578,13 +581,14 @@ export function useAntMedia(params: Params) {
     ]
   );
 
-  var ws: any = useRef(new WebSocket(url)).current;
+  const setWebSocketListeners = useCallback(() => {
+    if (!ws) return;
+    ws.sendJson = (dt: any) => {
+      if (ws && ws.send && ws.readyState === ws.OPEN) {
+        ws.send(JSON.stringify(dt));
+      }
+    };
 
-  ws.sendJson = (dt: any) => {
-    ws.send(JSON.stringify(dt));
-  };
-
-  useEffect(() => {
     ws.onopen = () => {
       if (debug) console.log('web socket opened !');
       callback.call(adaptorRef.current, 'initiated');
@@ -599,11 +603,12 @@ export function useAntMedia(params: Params) {
             if (debug) console.log('got stream');
 
             localStream.current = stream;
+            if (adaptorRef.current) callback.call(adaptorRef.current, 'local_stream_updated', stream);
             if (debug) console.log('in stream', localStream.current);
           })
           .catch((error: any) => {
             // Log error
-            if (debug) console.log('got error', error , mediaConstraints);
+            if (debug) console.log('got error', error, mediaConstraints);
           });
       } else {
         if (debug) console.log('only data channel');
@@ -626,7 +631,7 @@ export function useAntMedia(params: Params) {
           takeCandidate(data.streamId, data.label, data.candidate, data.id);
           break;
         case 'takeConfiguration':
-          takeConfiguration(data.streamId, data.sdp, data.type,data.idMapping);
+          takeConfiguration(data.streamId, data.sdp, data.type, data.idMapping);
           break;
         case 'stop':
           if (debug) console.log(' in stop', data);
@@ -673,7 +678,6 @@ export function useAntMedia(params: Params) {
           break;
       }
     };
-
     ws.onerror = (e: any) => {
       // an error occurred
       clearPingTimer();
@@ -684,7 +688,13 @@ export function useAntMedia(params: Params) {
       // connection closed
       clearPingTimer();
       if (debug) console.log(e.code, e.reason);
+      if (callback && adaptorRef.current) callback.call(adaptorRef.current, 'websocket_closed', '');
+      ws = null;
     };
+  }, [callback, callbackError, closePeerConnection, debug, mediaConstraints, startPublishing, takeCandidate, takeConfiguration, ws]);
+
+  useEffect(() => {
+    setWebSocketListeners();
   }, [
     callback,
     callbackError,
@@ -705,16 +715,26 @@ export function useAntMedia(params: Params) {
       subscriberId?: string,
       subscriberCode?: string,
       streamName?: string,
-      mainTrack?:string,
-      metaData?:string
+      mainTrack?: string,
+      metaData?: string
     ) => {
       publishStreamId = streamId;
       publishToken = token ? token : '';
       publishSubscriberId = subscriberId ? subscriberId : '';
       publishSubscriberCode = subscriberCode ? subscriberCode : '';
-      publishStreamName =  streamName ? streamName : '';
+      publishStreamName = streamName ? streamName : '';
       publishMainTrack = mainTrack ? mainTrack : '';
       publishMetaData = metaData ? metaData : '';
+
+      if (ws && ws.readyState === ws.CLOSED) {
+        if (debug) console.log('WebSocket is not connected');
+        if (adaptorRef.current) callback.call(adaptorRef.current, 'websocket_not_initialized', '');
+      }
+
+      if (localStream.current === null) {
+        if (debug) console.log('Local stream is not ready');
+        return;
+      }
 
       let data = {} as any;
       if (onlyDataChannel) {
@@ -728,8 +748,6 @@ export function useAntMedia(params: Params) {
           audio: false,
         };
       } else {
-        if (!localStream.current) return;
-
         let [video, audio] = [false, false];
 
         // @ts-ignore
@@ -758,7 +776,7 @@ export function useAntMedia(params: Params) {
 
   //play
   const play = useCallback(
-    (streamId: string, token?: string, room?: string , enableTracks?:MediaStreamTrack[],subscriberId?:string, subscriberCode?:string ,metaData?:string ) => {
+    (streamId: string, token?: string, room?: string, enableTracks?: MediaStreamTrack[], subscriberId?: string, subscriberCode?: string, metaData?: string) => {
       if (playStreamIds.includes(streamId)) return;
 
       playToken = token ? token : '';
@@ -767,6 +785,11 @@ export function useAntMedia(params: Params) {
       playSubscriberId = subscriberId ? subscriberId : "";
       playSubscriberCode = subscriberCode ? subscriberCode : "";
       playMetaData = metaData ? metaData : "";
+
+      if (ws && ws.readyState === ws.CLOSED) {
+        if (debug) console.log('WebSocket is not connected');
+        if (adaptorRef.current) callback.call(adaptorRef.current, 'websocket_not_initialized', '');
+      }
 
       playStreamIds.push(streamId);
       const data = {
@@ -788,6 +811,38 @@ export function useAntMedia(params: Params) {
     },
     [playStreamIds, ws]
   );
+
+  const stopLocalStream = useCallback(
+    () => {
+      if (localStream.current) {
+        // @ts-ignore
+        localStream.current.getTracks().forEach((track) => {
+          track.stop();
+        });
+        localStream.current = null;
+      }
+    },
+    [localStream]
+  );
+
+  const initialiseWebSocket = useCallback(() => {
+    console.log('initialising websocket')
+    if (ws && ws.readyState === ws.OPEN) {
+      if (debug) console.log('WebSocket is already connected');
+      return;
+    }
+
+    wsRef.current = new WebSocket(url);
+    ws = wsRef.current;
+    setWebSocketListeners();
+    console.log('WebSocket is connected');
+  }, [ws]);
+
+  const closeWebSocket = useCallback(() => {
+    if (ws) {
+      ws.close();
+    }
+  }, [ws]);
 
   const stop = useCallback(
     (streamId: any) => {
@@ -863,7 +918,7 @@ export function useAntMedia(params: Params) {
     }
   }, [localStream]);
 
-  const setRemoteAudioVolume = useCallback((volume: number, streamId: string, roomName: string|undefined) => {
+  const setRemoteAudioVolume = useCallback((volume: number, streamId: string, roomName: string | undefined) => {
     console.log("Setting remote mic")
     // @ts-ignore
     if (typeof roomName != 'undefined' && remotePeerConnection[roomName]) {
@@ -874,7 +929,7 @@ export function useAntMedia(params: Params) {
           track._setVolume(volume);
         }
       });
-    } else if(remotePeerConnection[streamId]) {
+    } else if (remotePeerConnection[streamId]) {
       remotePeerConnection[streamId]._remoteStreams.forEach((stream) => {
         let audioTrackID = "ARDAMSa" + streamId;
         let track = stream.getTrackById(audioTrackID);
@@ -885,7 +940,7 @@ export function useAntMedia(params: Params) {
     }
   }, [remotePeerConnection]);
 
-  const muteRemoteAudio = useCallback((streamId: string, roomName: string|undefined) => {
+  const muteRemoteAudio = useCallback((streamId: string, roomName: string | undefined) => {
     console.log("Muting remote mic")
     // @ts-ignore
     if (typeof roomName != 'undefined' && remotePeerConnection[roomName]) {
@@ -896,7 +951,7 @@ export function useAntMedia(params: Params) {
           track.enabled = false;
         }
       });
-    } else if(remotePeerConnection[streamId]) {
+    } else if (remotePeerConnection[streamId]) {
       remotePeerConnection[streamId]._remoteStreams.forEach((stream) => {
         let audioTrackID = "ARDAMSa" + streamId;
         let track = stream.getTrackById(audioTrackID);
@@ -907,7 +962,7 @@ export function useAntMedia(params: Params) {
     }
   }, [remotePeerConnection]);
 
-  const unmuteRemoteAudio = useCallback((streamId: string, roomName: string|undefined) => {
+  const unmuteRemoteAudio = useCallback((streamId: string, roomName: string | undefined) => {
     console.log("Muting remote mic")
     // @ts-ignore
     if (typeof roomName != 'undefined' && remotePeerConnection[roomName]) {
@@ -918,7 +973,7 @@ export function useAntMedia(params: Params) {
           track.enabled = true;
         }
       });
-    } else if(remotePeerConnection[streamId]) {
+    } else if (remotePeerConnection[streamId]) {
       remotePeerConnection[streamId]._remoteStreams.forEach((stream) => {
         let audioTrackID = "ARDAMSa" + streamId;
         let track = stream.getTrackById(audioTrackID);
@@ -941,23 +996,23 @@ export function useAntMedia(params: Params) {
     [ws]
   );
   const setPingTimer = useCallback(() => {
-    pingTimer = setInterval(()=>{
-      if(ws != null)
-      ws.sendJson({
-        command: 'ping',
-      });
-    },3000);
-  },[]);
+    pingTimer = setInterval(() => {
+      if (ws != null)
+        ws.sendJson({
+          command: 'ping',
+        });
+    }, 3000);
+  }, []);
 
   const clearPingTimer = useCallback(() => {
     if (pingTimer != -1) {
       if (debug) {
-          console.log("Clearing ping message timer");
+        console.log("Clearing ping message timer");
       }
       clearInterval(pingTimer);
       pingTimer = -1;
     }
-  },[]);
+  }, []);
 
   //Data Channel
   const peerMessage = useCallback(
@@ -973,15 +1028,15 @@ export function useAntMedia(params: Params) {
     [ws]
   );
 
-  const getDevices = useCallback( async () => {
+  const getDevices = useCallback(async () => {
     var deviceArray = new Array();
 
     try {
       const devices = await mediaDevices.enumerateDevices();
       // @ts-ignore
-      devices.map( device => {
+      devices.map(device => {
         deviceArray.push(device);
-      } );
+      });
 
       callback.call(adaptorRef.current, 'available_devices', deviceArray);
     } catch (err: any) {
@@ -1025,7 +1080,7 @@ export function useAntMedia(params: Params) {
     }
   }, []);
 
-  const turnOffRemoteCamera = useCallback((streamId: string, roomName: string|undefined) => {
+  const turnOffRemoteCamera = useCallback((streamId: string, roomName: string | undefined) => {
     console.log("Turning off remote camera")
     // @ts-ignore
     if (typeof roomName != 'undefined' && remotePeerConnection[roomName]) {
@@ -1036,7 +1091,7 @@ export function useAntMedia(params: Params) {
           track.enabled = false;
         }
       });
-    } else if(remotePeerConnection[streamId]) {
+    } else if (remotePeerConnection[streamId]) {
       remotePeerConnection[streamId]._remoteStreams.forEach((stream) => {
         let videoTrackID = "ARDAMSv" + streamId;
         let track = stream.getTrackById(videoTrackID);
@@ -1047,7 +1102,7 @@ export function useAntMedia(params: Params) {
     }
   }, [remotePeerConnection]);
 
-  const turnOnRemoteCamera = useCallback((streamId: string, roomName: string|undefined) => {
+  const turnOnRemoteCamera = useCallback((streamId: string, roomName: string | undefined) => {
     console.log("Turning on remote camera")
     // @ts-ignore
     if (typeof roomName != 'undefined' && remotePeerConnection[roomName]) {
@@ -1058,7 +1113,7 @@ export function useAntMedia(params: Params) {
           track.enabled = true;
         }
       });
-    } else if(remotePeerConnection[streamId]) {
+    } else if (remotePeerConnection[streamId]) {
       remotePeerConnection[streamId]._remoteStreams.forEach((stream) => {
         let videoTrackID = "ARDAMSv" + streamId;
         let track = stream.getTrackById(videoTrackID);
@@ -1084,6 +1139,9 @@ export function useAntMedia(params: Params) {
       publish,
       play,
       stop,
+      stopLocalStream,
+      initialiseWebSocket,
+      closeWebSocket,
       join,
       leave,
       requestVideoTrackAssignments,
@@ -1109,6 +1167,9 @@ export function useAntMedia(params: Params) {
     publish,
     play,
     stop,
+    stopLocalStream,
+    initialiseWebSocket,
+    closeWebSocket,
     localStream,
     join,
     leave,
@@ -1135,6 +1196,9 @@ export function useAntMedia(params: Params) {
     publish,
     play,
     stop,
+    stopLocalStream,
+    initialiseWebSocket,
+    closeWebSocket,
     localStream,
     join,
     leave,
@@ -1163,7 +1227,7 @@ export function rtc_view(
   customStyles: any = { width: '70%', height: '50%', alignSelf: 'center' },
   objectFit: any = 'cover'
 ) {
-  if(stream instanceof MediaStreamTrack ){
+  if (stream instanceof MediaStreamTrack) {
     let mediaStream = new MediaStream(undefined);
     mediaStream.addTrack(stream);
     stream = mediaStream.toURL();
