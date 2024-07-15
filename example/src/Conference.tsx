@@ -44,7 +44,7 @@ export default function Conference() {
     callback(command: any, data: any) {
       switch (command) {
         case 'initiated':
-          console.log('KOLA KOLAKEN: initiated');
+          console.log('initiated');
           break;
         case 'pong':
           break;
