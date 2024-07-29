@@ -19,6 +19,7 @@ export default function App() {
   const streamNameRef = useRef<string>(defaultStreamName);
   const [localMedia, setLocalMedia] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isWaitingWebsocketInit, setIsWaitingWebsocketInit] = useState(false);
 
   let localStream: any = useRef(null);
 
@@ -56,6 +57,7 @@ export default function App() {
           verify();
           break;
         case 'websocket_not_initialized':
+          setIsWaitingWebsocketInit(true);
           adaptor.initialiseWebSocket();
           break;
         case 'websocket_closed':
@@ -84,6 +86,11 @@ export default function App() {
     console.log('in verify');
     if (adaptor.localStream.current && adaptor.localStream.current.toURL()) {
       console.log('in verify if adaptor local stream', adaptor.localStream);
+      if (isWaitingWebsocketInit) {
+        setIsWaitingWebsocketInit(false);
+        publishStreamId = generateRandomString(12);
+        adaptor.publish(streamNameRef.current);
+      }
       return setLocalMedia(adaptor.localStream.current.toURL());
     }
     setTimeout(verify, 5000);
