@@ -12,11 +12,16 @@ jobs:
       uses: maxim-lobanov/setup-xcode@v1
       with:
         xcode-version: '15.3'
-    - name: Installation of node
+    - name: Setup node
       uses: actions/setup-node@v3
       with:
           node-version: 20
           registry-url: 'https://registry.npmjs.org'
+
+    - name: Setup cocoapods
+      uses: maxim-lobanov/setup-cocoapods@v1
+      with:
+        version: 1.5.2
 
     - name: npm install for SDK 
       run: npm install
