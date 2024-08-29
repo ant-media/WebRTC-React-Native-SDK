@@ -37,4 +37,10 @@ jobs:
         cd example/ios
         pod install
         cd ../..
+
+    - name: Build for iOS Simulator
+      run: |
+        cd example/ios
+        npm run build-ios
+        cd ../..
    

@@ -6,6 +6,7 @@
   "scripts": {
     "android": "react-native run-android",
     "ios": "react-native run-ios",
+    "build-ios":"react-native build-ios --mode Debug" ,
     "start": "react-native start"
   },
   "dependencies": {
