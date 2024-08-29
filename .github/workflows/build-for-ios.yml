@@ -3,7 +3,7 @@ name: iOS Build
 on: push
 
 jobs:
-  build:
+  build-for-ios:
     runs-on: macos-latest
 
     steps:

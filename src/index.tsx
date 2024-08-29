@@ -397,6 +397,7 @@ export function useAntMedia(params: Params) {
   );
 
   const takeCandidate = useCallback(
+    // @ts-ignore
     async (idOfTheStream: string, tmpLabel, tmpCandidate, sdpMid) => {
       if (debug) console.log('in takeCandidate');
 
