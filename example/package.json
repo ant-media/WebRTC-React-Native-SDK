@@ -8,13 +8,18 @@
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
-    "build-android":"react-native build-android --mode Debug" ,
-    "build-ios":"react-native build-ios --mode Debug" ,
+    "build:android": "react-native build-android --mode Debug",
+    "build:ios": "react-native build-ios --mode Debug",
+    "clean:ios": "rm -rf ios/build ios/Pods ios/Podfile.lock && cd ios && pod deintegrate && pod install && cd ..",
+    "clean:android": "cd android && ./gradlew clean && cd ..",
     "test": "jest"
   },
   "dependencies": {
     "react": "18.3.1",
-    "react-native": "0.75.2"
+    "react-native": "0.75.2",
+    "react-native-incall-manager": "^4.2.0",
+    "react-native-vector-icons": "^10.1.0",
+    "react-native-webrtc": "^124.0.4"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
@@ -25,8 +30,10 @@
     "@react-native/metro-config": "0.75.2",
     "@react-native/typescript-config": "0.75.2",
     "@types/react": "^18.2.6",
+    "@types/react-native-vector-icons": "^6.4.18",
     "@types/react-test-renderer": "^18.0.0",
     "babel-jest": "^29.6.3",
+    "babel-plugin-module-resolver": "^5.0.2",
     "eslint": "^8.19.0",
     "jest": "^29.6.3",
     "prettier": "2.8.8",

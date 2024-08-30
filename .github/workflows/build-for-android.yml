@@ -34,6 +34,6 @@ jobs:
     - name: Build for Android
       run: |
         cd example
-        npm run build-android
+        npm run build:android
         cd ..
    

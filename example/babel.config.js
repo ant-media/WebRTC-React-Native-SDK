@@ -5,7 +5,7 @@ module.exports = {
   presets: ['module:@react-native/babel-preset'],
   plugins: [
     [
-      'module-resolver',
+      'module-resolver', // we need babel-plugin-module-resolver to make it work 
       {
         extensions: ['.tsx', '.ts', '.js', '.json'],
         alias: {
