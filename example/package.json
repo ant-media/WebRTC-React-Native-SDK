@@ -6,22 +6,18 @@
   "scripts": {
     "android": "react-native run-android",
     "ios": "react-native run-ios",
+    "lint": "eslint .",
+    "start": "react-native start",
+    "build-android":"react-native build-android --mode Debug" ,
     "build-ios":"react-native build-ios --mode Debug" ,
-    "start": "react-native start"
+    "test": "jest"
   },
   "dependencies": {
-    "@react-native-community/cli": "^14.0.1",
-    "@react-native-community/cli-platform-ios": "^14.0.1",
-    "babel-runtime": "^6.26.0",
     "react": "18.3.1",
-    "react-native": "0.75.2",
-    "react-native-eject": "^0.2.0",
-    "react-native-incall-manager": "^4.0.0",
-    "react-native-vector-icons": "^10.0.3",
-    "react-native-webrtc": "124.0.4"
+    "react-native": "0.75.2"
   },
   "devDependencies": {
-   "@babel/core": "^7.20.0",
+    "@babel/core": "^7.20.0",
     "@babel/preset-env": "^7.20.0",
     "@babel/runtime": "^7.20.0",
     "@react-native/babel-preset": "0.75.2",
@@ -36,5 +32,9 @@
     "prettier": "2.8.8",
     "react-test-renderer": "18.3.1",
     "typescript": "5.0.4"
-  }
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "yarn@3.6.4"
 }

@@ -40,7 +40,7 @@ jobs:
 
     - name: Build for iOS Simulator
       run: |
-        cd example/ios
+        cd example/
         npm run build-ios
-        cd ../..
+        cd ..
    

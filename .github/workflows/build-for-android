@@ -1,0 +1,39 @@
+name: Android Build
+
+on: push
+
+jobs:
+  build-for-android:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup node
+      uses: actions/setup-node@v4
+      with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: 17
+        distribution: 'adopt'
+        cache: 'gradle'
+
+
+    - name: npm install for SDK 
+      run: npm install
+    
+    - name: npm install for example 
+      run: |
+        cd example
+        npm install
+        cd ..
+
+    - name: Build for Android
+      run: |
+        cd example
+        npm run build-android
+        cd ..
+   
