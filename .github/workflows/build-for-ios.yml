@@ -1,0 +1,46 @@
+name: iOS Build
+
+on: push
+
+jobs:
+  build-for-ios:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '15.4'
+    - name: Setup node
+      uses: actions/setup-node@v4
+      with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+
+    - name: Setup cocoapods
+      uses: maxim-lobanov/setup-cocoapods@v1
+      with:
+        version: 1.15.2
+
+    - name: npm install for SDK 
+      run: npm install
+    
+    - name: npm install for example 
+      run: |
+        cd example
+        npm install
+        cd ..
+
+    - name: Pod Install for iOS
+      run: |
+        cd example/ios
+        pod install
+        cd ../..
+
+    - name: Build for iOS Simulator
+      run: |
+        cd example
+        npm run build:ios
+        cd ..
+   
