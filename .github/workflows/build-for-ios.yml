@@ -40,7 +40,7 @@ jobs:
 
     - name: Build for iOS Simulator
       run: |
-        cd example/ios
-        xcodebuild -workspace ReactNativeAntMediaExample.xcworkspace -configuration Debug -scheme ReactNativeAntMediaExample -destination "generic/platform=iOS Simulator" build
-        cd ../..
+        cd example
+        npm run build-ios
+        cd ..
    
