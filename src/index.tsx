@@ -247,7 +247,7 @@ export function useAntMedia(params: Params) {
             if (debug) console.log('onicecandidate', event);
             iceCandidateReceived(event, closedStreamId);
           };
-
+          // @ts-ignore
           remotePeerConnection[streamId].ontrack = (event: any) => {
             if (debug) console.log('onTrack', event);
             onTrack(event, closedStreamId);
@@ -408,6 +408,7 @@ export function useAntMedia(params: Params) {
   );
 
   const takeCandidate = useCallback(
+    // @ts-ignore
     async (idOfTheStream: string, tmpLabel, tmpCandidate, sdpMid) => {
       if (debug) console.log('in takeCandidate');
 
@@ -910,7 +911,7 @@ export function useAntMedia(params: Params) {
     } catch (err: any) {
       console.log("Cannot get devices -> error: " + err);
     }
-
+    // @ts-ignore
     mediaDevices.ondevicechange = async () => {
       console.log("Device change event")
       getDevices();

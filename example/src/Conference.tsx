@@ -18,7 +18,7 @@ var publishStreamId: string;
 
 export default function Conference() {
   var defaultRoomName = 'room1';
-  const webSocketUrl = 'ws://server.com:5080/WebRTCAppEE/websocket';
+  const webSocketUrl = 'ws://test.antmedia.io:5080/WebRTCAppEE/websocket';
   //or webSocketUrl: 'wss://server.com:5443/WebRTCAppEE/websocket',
 
   const [localMedia, setLocalMedia] = useState('');
@@ -105,7 +105,7 @@ export default function Conference() {
       }
     },
     callbackError: (err: any, data: any) => {
-      if (err === "no_active_streams_in_room" || err === "no_stream_exists") {
+      if (err === "no_active_streams_in_room" || err === "no_stream_exist") {
         // it throws this error when there is no stream in the room
         // so we shouldn't reset streams list
       } else {
@@ -202,7 +202,7 @@ export default function Conference() {
       });
       return;
     }
-    console.warn("clearing all the remote renderer", remoteTracks, streamId)
+    console.info("clearing all the remote renderer", remoteTracks, streamId)
     setremoteTracks([]);
   };
 

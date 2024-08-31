@@ -13,7 +13,7 @@ import InCallManager from 'react-native-incall-manager';
 
 export default function App() {
   var defaultStreamName = 'stream1';
-  const webSocketUrl = 'ws://server.com:5080/WebRTCAppEE/websocket';
+  const webSocketUrl = 'ws://test.antmedia.io:5080/WebRTCAppEE/websocket';
   //or webSocketUrl: 'wss://server.com:5443/WebRTCAppEE/websocket',
 
   const [localMedia, setLocalMedia] = useState('');
