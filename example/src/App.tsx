@@ -11,6 +11,8 @@ import {useAntMedia, rtc_view} from '@antmedia/react-native-ant-media';
 
 import InCallManager from 'react-native-incall-manager';
 
+var publishStreamId:string;
+
 export default function App() {
   var defaultStreamName = 'streamTest1';
   const webSocketUrl = 'ws://server.com:5080/WebRTCAppEE/websocket';
@@ -82,6 +84,18 @@ export default function App() {
     debug: true,
   });
 
+  const generateRandomString = (length: number): string => {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    const charactersLength = characters.length;
+
+    for (let i = 0; i < length; i++) {
+      const randomIndex = Math.floor(Math.random() * charactersLength);
+      result += characters.charAt(randomIndex);
+    }
+    return result;
+  };
+
   const verify = () => {
     console.log('in verify');
     if (adaptor.localStream.current && adaptor.localStream.current.toURL()) {
@@ -89,7 +103,7 @@ export default function App() {
       if (isWaitingWebsocketInit) {
         setIsWaitingWebsocketInit(false);
         publishStreamId = generateRandomString(12);
-        adaptor.publish(streamNameRef.current);
+        adaptor.publish(publishStreamId);
       }
       return setLocalMedia(adaptor.localStream.current.toURL());
     }
@@ -110,15 +124,15 @@ export default function App() {
     if (!adaptor) {
       return;
     }
-
-    adaptor.publish(streamNameRef.current);
+    publishStreamId = generateRandomString(12);
+    adaptor.publish(publishStreamId);
   }, [adaptor]);
 
   const handleStop = useCallback(() => {
     if (!adaptor) {
       return;
     }
-    adaptor.stop(streamNameRef.current);
+    adaptor.stop(publishStreamId);
   }, [adaptor]);
 
   return (
