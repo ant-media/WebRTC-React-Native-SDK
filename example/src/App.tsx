@@ -11,6 +11,8 @@ import {useAntMedia, rtc_view} from '@antmedia/react-native-ant-media';
 
 import InCallManager from 'react-native-incall-manager';
 
+var publishStreamId:string;
+
 export default function App() {
   var defaultStreamName = 'streamTest1';
   const webSocketUrl = 'ws://test.antmedia.io:5080/WebRTCAppEE/websocket';
@@ -19,7 +21,7 @@ export default function App() {
   const streamNameRef = useRef<string>(defaultStreamName);
   const [localMedia, setLocalMedia] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
-
+  const [isWaitingWebsocketInit, setIsWaitingWebsocketInit] = useState(false);
 
   let localStream: any = useRef(null);
 
@@ -50,6 +52,19 @@ export default function App() {
           console.log('publish_finished');
           InCallManager.stop();
           setIsPlaying(false);
+          adaptor.closeWebSocket();
+          break;
+        case 'local_stream_updated':
+          console.log('local_stream_updated');
+          verify();
+          break;
+        case 'websocket_not_initialized':
+          setIsWaitingWebsocketInit(true);
+          adaptor.initialiseWebSocket();
+          break;
+        case 'websocket_closed':
+          console.log('websocket_closed');
+          adaptor.stopLocalStream();
           break;
         default:
           console.log(command);
@@ -69,22 +84,33 @@ export default function App() {
     debug: true,
   });
 
-  useEffect(() => {
-    const verify = () => {
-      console.log('in verify');
+  const generateRandomString = (length: number): string => {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    const charactersLength = characters.length;
 
-      if (adaptor.localStream.current && adaptor.localStream.current.toURL()) {
-        console.log('in verify if adaptor local stream', adaptor.localStream);
+    for (let i = 0; i < length; i++) {
+      const randomIndex = Math.floor(Math.random() * charactersLength);
+      result += characters.charAt(randomIndex);
+    }
+    return result;
+  };
 
-        console.log(
-          'localStream.current.toURL()',
-          adaptor.localStream.current.toURL(),
-        );
-
-        return setLocalMedia(adaptor.localStream.current.toURL());
+  const verify = () => {
+    console.log('in verify');
+    if (adaptor.localStream.current && adaptor.localStream.current.toURL()) {
+      console.log('in verify if adaptor local stream', adaptor.localStream);
+      if (isWaitingWebsocketInit) {
+        setIsWaitingWebsocketInit(false);
+        publishStreamId = generateRandomString(12);
+        adaptor.publish(publishStreamId);
       }
-      setTimeout(verify, 5000);
-    };
+      return setLocalMedia(adaptor.localStream.current.toURL());
+    }
+    setTimeout(verify, 5000);
+  };
+
+  useEffect(() => {
     verify();
   }, [adaptor.localStream]);
 
@@ -98,15 +124,15 @@ export default function App() {
     if (!adaptor) {
       return;
     }
-
-    adaptor.publish(streamNameRef.current);
+    publishStreamId = generateRandomString(12);
+    adaptor.publish(publishStreamId);
   }, [adaptor]);
 
   const handleStop = useCallback(() => {
     if (!adaptor) {
       return;
     }
-    adaptor.stop(streamNameRef.current);
+    adaptor.stop(publishStreamId);
   }, [adaptor]);
 
   return (

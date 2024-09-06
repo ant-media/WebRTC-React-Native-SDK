@@ -33,6 +33,9 @@ export interface Adaptor {
   publish: (streamId: string, token?: string, subscriberId?:string , subscriberCode?: string, streamName?: string, mainTrack?:string, metaData?:string) => void;
   play: (streamId: string, token?: string, room?: string , enableTracks?: MediaStream[],subscriberId?:string , subscriberCode?: string,  metaData?:string) => void;
   stop: (streamId: string) => void;
+  stopLocalStream: () => void;
+  initialiseWebSocket: () => void;
+  closeWebSocket: () => void;
   join: (streamId: string) => void;
   leave: (streamId: string) => void;
   getRoomInfo: (room: string, streamId?: string) => void;
@@ -91,6 +94,10 @@ export function useAntMedia(params: Params) {
 
   const adaptorRef: any = useRef<null | Adaptor>(null);
 
+  const wsRef: any = useRef<null | WebSocket>(new WebSocket(url));
+
+  var ws = wsRef.current;
+
   let localStream: any = useRef(null);
 
   const remotePeerConnection = useRef<RemotePeerConnection>({}).current;
@@ -137,6 +144,8 @@ export function useAntMedia(params: Params) {
         clearInterval(remotePeerConnectionStats[streamId].timerId);
         delete remotePeerConnectionStats[streamId];
       }
+
+      clearPingTimer();
     },
     [playStreamIds, remotePeerConnection, remotePeerConnectionStats]
   );
@@ -445,114 +454,122 @@ export function useAntMedia(params: Params) {
     ]
   );
 
-  var ws: any = useRef(new WebSocket(url)).current;
+  const setWebSocketListeners = useCallback(() => {
+        if (!ws) return;
+        ws.sendJson = (dt: any) => {
+          if (ws && ws.send && ws.readyState === ws.OPEN) {
+            ws.send(JSON.stringify(dt));
+          }
+        };
 
-  ws.sendJson = (dt: any) => {
-    ws.send(JSON.stringify(dt));
-  };
+        ws.onopen = () => {
+          if (debug) console.log('web socket opened !');
+          callback.call(adaptorRef.current, 'initiated');
+          // connection opened
+
+          getDevices();
+
+          if (!onlyDataChannel) {
+            mediaDevices.getUserMedia(mediaConstraints)
+              .then((stream: any) => {
+                // Got stream!
+                if (debug) console.log('got stream');
+
+                localStream.current = stream;
+                if (adaptorRef.current) callback.call(adaptorRef.current, 'local_stream_updated', stream);
+                if (debug) console.log('in stream', localStream.current);
+              })
+              .catch((error: any) => {
+                // Log error
+                if (debug) console.log('got error', error , mediaConstraints);
+              });
+          } else {
+            if (debug) console.log('only data channel');
+          }
+          setPingTimer();
+        };
+
+        ws.onmessage = (e: any) => {
+          // a message was received
+          const data = JSON.parse(e.data);
+          if (debug) console.log(' onmessage', data);
+
+          switch (data.command) {
+            case 'start':
+              // start  publishing
+              startPublishing(data.streamId);
+              break;
+            case 'takeCandidate':
+              //console.log(' in takeCandidate', data);
+              takeCandidate(data.streamId, data.label, data.candidate, data.id);
+              break;
+            case 'takeConfiguration':
+              takeConfiguration(data.streamId, data.sdp, data.type,data.idMapping);
+              break;
+            case 'stop':
+              if (debug) console.log(' in stop', data);
+              closePeerConnection(data.streamId);
+              break;
+            case 'error':
+              if (debug) console.log(' in error', data);
+              if (callbackError) {
+                callbackError(data.definition, data);
+              }
+              break;
+            case 'notification':
+              if (debug) console.log(' in notification', data);
+
+              if (adaptorRef.current)
+                callback.call(adaptorRef.current, data.definition, data);
+              break;
+            case 'roomInformation':
+              if (debug) console.log(' in roomInformation', data);
+              callback.call(adaptorRef.current, data.command, data);
+              break;
+            case 'pong':
+              if (debug) console.log(' in pong', data);
+              break;
+            case 'streamInformation':
+              if (debug) console.log(' in streamInformation', data);
+              callback.call(adaptorRef.current, data.command, data);
+              break;
+            case 'trackList':
+              if (debug) console.log(' in trackList', data);
+              callback.call(adaptorRef.current, data.command, data);
+              break;
+            case 'connectWithNewId':
+              if (debug) console.log(' in connectWithNewId', data);
+              callback.call(adaptorRef.current, data.command, data);
+              break;
+            case 'peerMessageCommand':
+              if (debug) console.log(' in peerMessageCommand', data);
+              callback.call(adaptorRef.current, data.command, data);
+              break;
+            default:
+              if (debug) console.log(' in default', data);
+              callback.call(adaptorRef.current, data.command, data);
+              break;
+          }
+        };
+
+        ws.onerror = (e: any) => {
+          // an error occurred
+          clearPingTimer();
+          if (debug) console.log(e.message);
+        };
+
+        ws.onclose = (e: any) => {
+          // connection closed
+          clearPingTimer();
+          if (debug) console.log(e.code, e.reason);
+          if (callback && adaptorRef.current) callback.call(adaptorRef.current, 'websocket_closed', '' );
+          ws = null;
+        };
+  }, [callback, callbackError, closePeerConnection, debug, mediaConstraints, startPublishing, takeCandidate, takeConfiguration, ws]);
 
   useEffect(() => {
-    ws.onopen = () => {
-      if (debug) console.log('web socket opened !');
-      callback.call(adaptorRef.current, 'initiated');
-      // connection opened
-
-      getDevices();
-
-      if (!onlyDataChannel) {
-        mediaDevices.getUserMedia(mediaConstraints)
-          .then((stream: any) => {
-            // Got stream!
-            if (debug) console.log('got stream');
-
-            localStream.current = stream;
-            if (debug) console.log('in stream', localStream.current);
-          })
-          .catch((error: any) => {
-            // Log error
-            if (debug) console.log('got error', error , mediaConstraints);
-          });
-      } else {
-        if (debug) console.log('only data channel');
-      }
-      setPingTimer();
-    };
-
-    ws.onmessage = (e: any) => {
-      // a message was received
-      const data = JSON.parse(e.data);
-      if (debug) console.log(' onmessage', data);
-
-      switch (data.command) {
-        case 'start':
-          // start  publishing
-          startPublishing(data.streamId);
-          break;
-        case 'takeCandidate':
-          //console.log(' in takeCandidate', data);
-          takeCandidate(data.streamId, data.label, data.candidate, data.id);
-          break;
-        case 'takeConfiguration':
-          takeConfiguration(data.streamId, data.sdp, data.type,data.idMapping);
-          break;
-        case 'stop':
-          if (debug) console.log(' in stop', data);
-          closePeerConnection(data.streamId);
-          break;
-        case 'error':
-          if (debug) console.log(' in error', data);
-          if (callbackError) {
-            callbackError(data.definition, data);
-          }
-          break;
-        case 'notification':
-          if (debug) console.log(' in notification', data);
-
-          if (adaptorRef.current)
-            callback.call(adaptorRef.current, data.definition, data);
-          break;
-        case 'roomInformation':
-          if (debug) console.log(' in roomInformation', data);
-          callback.call(adaptorRef.current, data.command, data);
-          break;
-        case 'pong':
-          if (debug) console.log(' in pong', data);
-          break;
-        case 'streamInformation':
-          if (debug) console.log(' in streamInformation', data);
-          callback.call(adaptorRef.current, data.command, data);
-          break;
-        case 'trackList':
-          if (debug) console.log(' in trackList', data);
-          callback.call(adaptorRef.current, data.command, data);
-          break;
-        case 'connectWithNewId':
-          if (debug) console.log(' in connectWithNewId', data);
-          callback.call(adaptorRef.current, data.command, data);
-          break;
-        case 'peerMessageCommand':
-          if (debug) console.log(' in peerMessageCommand', data);
-          callback.call(adaptorRef.current, data.command, data);
-          break;
-        default:
-          if (debug) console.log(' in default', data);
-          callback.call(adaptorRef.current, data.command, data);
-          break;
-      }
-    };
-
-    ws.onerror = (e: any) => {
-      // an error occurred
-      clearPingTimer();
-      if (debug) console.log(e.message);
-    };
-
-    ws.onclose = (e: any) => {
-      // connection closed
-      clearPingTimer();
-      if (debug) console.log(e.code, e.reason);
-    };
-  }, [
+    setWebSocketListeners();
+    }, [
     callback,
     callbackError,
     closePeerConnection,
@@ -575,6 +592,16 @@ export function useAntMedia(params: Params) {
       mainTrack?:string,
       metaData?:string
     ) => {
+      if (ws && ws.readyState === ws.CLOSED) {
+        if (debug) console.log('WebSocket is not connected');
+        if (adaptorRef.current) callback.call(adaptorRef.current, 'websocket_not_initialized', '');
+      }
+
+      if (localStream.current === null) {
+        if (debug) console.log('Local stream is not ready');
+        return;
+      }
+
       let data = {} as any;
       if (onlyDataChannel) {
         data = {
@@ -587,7 +614,6 @@ export function useAntMedia(params: Params) {
           audio: false,
         };
       } else {
-        if (!localStream.current) return;
 
         let [video, audio] = [false, false];
 
@@ -618,6 +644,11 @@ export function useAntMedia(params: Params) {
   //play
   const play = useCallback(
     (streamId: string, token?: string, room?: string , enableTracks?:MediaStreamTrack[],subscriberId?:string, subscriberCode?:string ,metaData?:string ) => {
+      if (ws && ws.readyState === ws.CLOSED) {
+        if (debug) console.log('WebSocket is not connected');
+        if (adaptorRef.current) callback.call(adaptorRef.current, 'websocket_not_initialized', '');
+      }
+
       playStreamIds.push(streamId);
       const data = {
         command: 'play',
@@ -638,6 +669,38 @@ export function useAntMedia(params: Params) {
     },
     [playStreamIds, ws]
   );
+
+  const stopLocalStream = useCallback(
+    () => {
+      if (localStream.current) {
+        // @ts-ignore
+        localStream.current.getTracks().forEach((track) => {
+          track.stop();
+        });
+        localStream.current = null;
+      }
+    },
+    [localStream]
+  );
+
+  const initialiseWebSocket = useCallback(() => {
+    console.log('initialising websocket')
+    if (ws && ws.readyState === ws.OPEN) {
+      if (debug) console.log('WebSocket is already connected');
+      return;
+    }
+
+    wsRef.current = new WebSocket(url);
+    ws = wsRef.current;
+    setWebSocketListeners();
+    console.log('WebSocket is connected');
+  }, [ws]);
+
+  const closeWebSocket = useCallback(() => {
+    if (ws) {
+      ws.close();
+    }
+  }, [ws]);
 
   const stop = useCallback(
     (streamId: any) => {
@@ -922,6 +985,9 @@ export function useAntMedia(params: Params) {
       publish,
       play,
       stop,
+      stopLocalStream,
+      initialiseWebSocket,
+      closeWebSocket,
       join,
       leave,
       getRoomInfo,
@@ -946,6 +1012,9 @@ export function useAntMedia(params: Params) {
     publish,
     play,
     stop,
+    stopLocalStream,
+    initialiseWebSocket,
+    closeWebSocket,
     localStream,
     join,
     leave,
@@ -971,6 +1040,9 @@ export function useAntMedia(params: Params) {
     publish,
     play,
     stop,
+    stopLocalStream,
+    initialiseWebSocket,
+    closeWebSocket,
     localStream,
     join,
     leave,
