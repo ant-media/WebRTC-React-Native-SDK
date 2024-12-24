@@ -15,6 +15,8 @@ import {
   RTCView,
 } from 'react-native-webrtc';
 
+import 'react-native-url-polyfill/auto';
+
 //Interfaces
 export interface Params {
   url: string;
@@ -24,6 +26,7 @@ export interface Params {
   peer_connection_config?: any;
   debug?: boolean;
   onlyDataChannel?: boolean;
+  playMode?: boolean;
 }
 export interface RemoteStreams {
   [key: string]: MediaStream;
@@ -90,11 +93,22 @@ export function useAntMedia(params: Params) {
     peer_connection_config,
     debug,
     onlyDataChannel,
+    playMode,
   } = params;
+
+  var websocketUrl = url;
 
   const adaptorRef: any = useRef<null | Adaptor>(null);
 
-  const wsRef: any = useRef<null | WebSocket>(new WebSocket(url));
+  const isPlayMode = playMode || false;
+
+  const updatedUrl = new URL(websocketUrl);
+  if (!['origin', 'edge'].includes(updatedUrl.searchParams.get('target') ?? '')) {
+    updatedUrl.searchParams.set('target', isPlayMode ? 'edge' : 'origin');
+    websocketUrl = updatedUrl.toString();
+  }
+
+  const wsRef: any = useRef<null | WebSocket>(new WebSocket(websocketUrl));
 
   var ws = wsRef.current;
 
@@ -690,7 +704,13 @@ export function useAntMedia(params: Params) {
       return;
     }
 
-    wsRef.current = new WebSocket(url);
+    const updatedUrl: URL = new URL(websocketUrl);
+    if (!['origin', 'edge'].includes(updatedUrl.searchParams.get('target') ?? '')) {
+      updatedUrl.searchParams.set('target', isPlayMode ? 'edge' : 'origin');
+      websocketUrl = updatedUrl.toString();
+    }
+
+    wsRef.current = new WebSocket(websocketUrl);
     ws = wsRef.current;
     setWebSocketListeners();
     console.log('WebSocket is connected');

@@ -39,11 +39,11 @@ export default function App() {
           break;
         case 'play_finished':
           console.log('play_finished');
-          
+
           setIsPlaying(false);
           setRemoteStream('');
         break;
-        case "newStreamAvailable": 
+        case "newStreamAvailable":
         if(data.streamId == streamNameRef.current)
           setRemoteStream(data.stream.toURL());
         break;
@@ -63,6 +63,7 @@ export default function App() {
       ],
     },
     debug: true,
+    playMode: true,
   });
 
 
