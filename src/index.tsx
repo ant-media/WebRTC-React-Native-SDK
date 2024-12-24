@@ -103,7 +103,7 @@ export function useAntMedia(params: Params) {
   const isPlayMode = playMode || false;
 
   const updatedUrl = new URL(websocketUrl);
-  if (!['origin', 'edge'].includes(updatedUrl.searchParams.get('target'))) {
+  if (!['origin', 'edge'].includes(updatedUrl.searchParams.get('target') ?? '')) {
     updatedUrl.searchParams.set('target', isPlayMode ? 'edge' : 'origin');
     websocketUrl = updatedUrl.toString();
   }
@@ -705,7 +705,7 @@ export function useAntMedia(params: Params) {
     }
 
     const updatedUrl: URL = new URL(websocketUrl);
-    if (!['origin', 'edge'].includes(updatedUrl.searchParams.get('target'))) {
+    if (!['origin', 'edge'].includes(updatedUrl.searchParams.get('target') ?? '')) {
       updatedUrl.searchParams.set('target', isPlayMode ? 'edge' : 'origin');
       websocketUrl = updatedUrl.toString();
     }
