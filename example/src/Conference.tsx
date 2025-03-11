@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#DDDDDD',
+    backgroundColor: '#AAAAAA',
     padding: 10,
     width: '100%',
     marginTop: 20,
@@ -341,15 +341,17 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 5,
     padding: 2,
+    color: 'black'
   },
   heading1: {
     alignSelf: 'center',
     marginTop: 20,
+    color: 'black'
   },
   roundButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#DDDDDD',
+    backgroundColor: '#AAAAAA',
     padding: 5,
     borderRadius: 25, // This will make the button round
     width: 30, // Diameter of the button

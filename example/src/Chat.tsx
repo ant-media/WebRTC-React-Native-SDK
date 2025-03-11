@@ -184,11 +184,12 @@ const styles = StyleSheet.create({
   },
   button: {
     alignItems: 'center',
-    backgroundColor: '#DDDDDD',
+    backgroundColor: '#AAAAAA',
     padding: 10,
     marginBottom: 10,
   },
   heading: {
     alignSelf: 'center',
+    color: 'black'
   },
 });

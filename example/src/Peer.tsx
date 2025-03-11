@@ -44,7 +44,7 @@ export default function App() {
           console.log('leaved!');
           setIsPlaying(false);
           break;
-        case "newStreamAvailable": 
+        case "newStreamAvailable":
           if(data.streamId == streamNameRef.current)
             setRemoteStream(data.stream.toURL());
         default:
@@ -161,12 +161,13 @@ const styles = StyleSheet.create({
   },
   button: {
     alignItems: 'center',
-    backgroundColor: '#DDDDDD',
+    backgroundColor: '#AAAAAA',
     padding: 10,
     marginBottom: 10,
   },
   heading: {
     alignSelf: 'center',
     marginBottom: 10,
+    color: 'black'
   },
 });
