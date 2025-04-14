@@ -17,7 +17,10 @@
   "dependencies": {
     "react": "18.3.1",
     "react-native": "0.75.2",
+    "react-native-gesture-handler": "^2.24.0",
     "react-native-incall-manager": "^4.2.0",
+    "react-native-safe-area-context": "^5.3.0",
+    "react-native-screens": "^4.9.1",
     "react-native-vector-icons": "^10.1.0",
     "react-native-webrtc": "^124.0.4"
   },
@@ -29,7 +32,10 @@
     "@react-native/eslint-config": "0.75.2",
     "@react-native/metro-config": "0.75.2",
     "@react-native/typescript-config": "0.75.2",
-    "@types/react": "^18.2.6",
+    "@react-navigation/native": "^7.0.15",
+    "@react-navigation/stack": "^7.1.2",
+    "@types/react": "^18.3.18",
+    "@types/react-native": "^0.73.0",
     "@types/react-native-vector-icons": "^6.4.18",
     "@types/react-test-renderer": "^18.0.0",
     "babel-jest": "^29.6.3",

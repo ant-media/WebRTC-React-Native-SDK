@@ -115,6 +115,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    ackgroundColor: '#f5f5f5',
   },
   box: {
     alignSelf: 'center',
@@ -133,11 +134,12 @@ const styles = StyleSheet.create({
   },
   startButton: {
     alignItems: 'center',
-    backgroundColor: '#DDDDDD',
+    backgroundColor: '#AAAAAA',
     padding: 10,
     top: 400,
   },
   heading: {
     alignSelf: 'center',
+    color: 'black'
   },
 });

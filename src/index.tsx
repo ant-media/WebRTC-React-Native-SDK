@@ -483,7 +483,7 @@ export function useAntMedia(params: Params) {
 
           getDevices();
 
-          if (!onlyDataChannel) {
+          if (!onlyDataChannel && !isPlayMode) {
             mediaDevices.getUserMedia(mediaConstraints)
               .then((stream: any) => {
                 // Got stream!
@@ -498,7 +498,7 @@ export function useAntMedia(params: Params) {
                 if (debug) console.log('got error', error , mediaConstraints);
               });
           } else {
-            if (debug) console.log('only data channel');
+            if (debug) console.log('only data channel or play only');
           }
           setPingTimer();
         };
