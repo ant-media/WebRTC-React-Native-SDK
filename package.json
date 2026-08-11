@@ -1,6 +1,6 @@
 {
   "name": "@antmedia/react-native-ant-media",
-  "version": "1.11.1",
+  "version": "1.11.2",
   "description": "Ant Media Server WebRTC React Native SDK and Reference Project",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
@@ -36,7 +36,10 @@
     "ios",
     "android"
   ],
-  "repository": "https://github.com/ant-media/WebRTC-React-Native-SDK",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ant-media/WebRTC-React-Native-SDK.git"
+  },
   "author": "ant-media",
   "license": "MIT",
   "bugs": {
@@ -44,6 +47,7 @@
   },
   "homepage": "https://github.com/ant-media/WebRTC-React-Native-SDK#readme",
   "publishConfig": {
+    "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
   "devDependencies": {
