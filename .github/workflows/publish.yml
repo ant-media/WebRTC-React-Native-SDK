@@ -4,6 +4,10 @@ on:
    push:
      branches: [ main ]
 
+permissions:
+   contents: read
+   id-token: write
+
 jobs:
   publish:
      name: publishing
@@ -11,23 +15,15 @@ jobs:
 
      steps:
         - name: checkout
-          uses: actions/checkout@v3.0.2
+          uses: actions/checkout@v6
         - name: installation of node
-          uses: actions/setup-node@v4
+          uses: actions/setup-node@v6
           with:
-            node-version: 20
+            node-version: 24
             registry-url: 'https://registry.npmjs.org'
-            scope: '@antmedia'
-            always-auth: true
-
-        - name: verify npm authentication
-          run: npm whoami
-          env:
-            NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+            package-manager-cache: false
 
         - name: publish
           run: |
            npm ci
            npm publish --access public
-          env:
-            NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
