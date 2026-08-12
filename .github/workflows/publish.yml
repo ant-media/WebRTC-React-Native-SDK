@@ -17,11 +17,17 @@ jobs:
           with:
             node-version: 20
             registry-url: 'https://registry.npmjs.org'
+            scope: '@antmedia'
+            always-auth: true
 
-        - name: publish
-          run: |
-           npm install
-           npm publish
+        - name: verify npm authentication
+          run: npm whoami
           env:
             NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+        - name: publish
+          run: |
+           npm ci
+           npm publish --access public
+          env:
+            NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
