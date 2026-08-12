@@ -26,8 +26,13 @@ jobs:
         - name: install dependencies
           run: npm ci
 
+        - name: verify trusted publishing environment
+          run: |
+           node --version
+           npm --version
+           test -n "$ACTIONS_ID_TOKEN_REQUEST_URL"
+           test -n "$ACTIONS_ID_TOKEN_REQUEST_TOKEN"
+           npm pkg get name version repository
+
         - name: publish
           run: npm publish --access public
-          env:
-            NODE_AUTH_TOKEN: ''
-            NPM_TOKEN: ''
