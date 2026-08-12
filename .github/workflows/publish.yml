@@ -23,7 +23,11 @@ jobs:
             registry-url: 'https://registry.npmjs.org'
             package-manager-cache: false
 
+        - name: install dependencies
+          run: npm ci
+
         - name: publish
-          run: |
-           npm ci
-           npm publish --access public
+          run: npm publish --access public
+          env:
+            NODE_AUTH_TOKEN: ''
+            NPM_TOKEN: ''
